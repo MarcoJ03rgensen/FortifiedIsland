@@ -1,0 +1,25 @@
+# Python scripts and virtual environments
+*.py
+*.py[cod]
+__pycache__/
+.venv/
+venv/
+ENV/
+
+# OS and IDE configuration
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Raw literature and PDF archives
+*.pdf
+scanned_data/
+
+# Intermediate / unmerged datasets and extracts
+Bornholm_graves_master(Ark2).csv
+insel_in_der_mitte_academic_extract.json
+
+# Raw/backup assets and temporary folders
+fortisgraves_original.png
+visuals/

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bornholm Graves Explorer | Archaeological Geospatial Intelligence</title>
+  <meta name="description" content="Professional Glassmorphism Archaeological Web Application for Bornholm Iron Age & Early Medieval Graves Master Dataset.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- MapLibre GL CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <!-- Top Navigation & Glass Header -->
+  <header class="glass-header">
+    <div class="header-left">
+      <div class="brand-logo">
+        <img src="fortisgraves.png" alt="Fortis Graves Logo" class="brand-logo-img">
+      </div>
+      <div class="brand-info">
+        <h1 class="brand-title">BORNHOLM GRAVES EXPLORER</h1>
+        <p class="brand-subtitle">Archaeological Master Register &bull; Late Roman & Germanic Iron Age</p>
+      </div>
+    </div>
+
+    <!-- Live Sync Status Indicator -->
+    <div class="sync-indicator-pill" id="syncStatusPill" title="Watching bornholm_graves_master.csv for instant changes">
+      <span class="pulsing-dot"></span>
+      <span id="syncText">Connected to Master CSV</span>
+      <button class="btn-icon-tiny" id="btnManualReload" title="Reload Dataset Now">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+    </div>
+
+    <!-- Map Projection & Layer Controls -->
+    <div class="header-center">
+      <div class="glass-pill-toggle" role="group" aria-label="Map Mode">
+        <button id="btnViewLocal" class="pill-btn active" title="Local High-Resolution Bornholm Satellite View">
+          <i class="fa-solid fa-satellite"></i> Local Bornholm
+        </button>
+        <button id="btnViewGlobe" class="pill-btn" title="3D Planetary Globe View">
+          <i class="fa-solid fa-earth-europe"></i> 3D Globe
+        </button>
+      </div>
+
+      <div class="glass-pill-toggle">
+        <button id="btnToggleLabels" class="pill-btn active" title="Toggle Place Names and Boundaries Overlay">
+          <i class="fa-solid fa-tag"></i> Labels
+        </button>
+        <button id="btnToggleHeatmap" class="pill-btn" title="Toggle Burial Density Heatmap">
+          <i class="fa-solid fa-fire-flame-curved"></i> Heatmap
+        </button>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-right">
+      <div class="dropdown">
+        <button class="glass-btn btn-primary" id="btnExportMenu">
+          <i class="fa-solid fa-download"></i> Export Extract (<span id="exportCountBadge">0</span>)
+        </button>
+        <div class="dropdown-content glass-dropdown" id="exportDropdown">
+          <a href="#" id="exportFilteredCSV"><i class="fa-solid fa-file-csv"></i> Download Filtered CSV</a>
+          <a href="#" id="exportFilteredJSON"><i class="fa-solid fa-file-code"></i> Download Filtered JSON</a>
+          <a href="#" id="exportFilteredGeoJSON"><i class="fa-solid fa-map-location-dot"></i> Download GeoJSON (GIS)</a>
+          <a href="#" id="exportFilteredSHP"><i class="fa-solid fa-file-zipper"></i> Download Shapefile (.shp / .zip)</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" id="exportFullMasterCSV"><i class="fa-solid fa-database"></i> Download Full Master CSV</a>
+        </div>
+      </div>
+
+      <button class="glass-btn" id="btnToggleTable" title="View Tabular Data">
+        <i class="fa-solid fa-table-list"></i>
+      </button>
+      <button class="glass-btn" id="btnInfoModal" title="Dataset Information & Schema">
+        <i class="fa-solid fa-circle-info"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-layout">
+    <!-- Left Sidebar: Search, Period Hierarchy, and Multi-Facets -->
+    <aside class="glass-sidebar" id="sidebarPanel">
+      <div class="sidebar-header">
+        <div class="search-bar-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="globalSearchInput" placeholder="Search sites, parishes, weapon finds, museum nos..." autocomplete="off">
+          <button class="clear-search-btn" id="btnClearSearch" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <div class="sidebar-scrollable">
+        <!-- Live Filter Summary Pill Box -->
+        <div class="filter-metrics-strip">
+          <div class="metric-card">
+            <span class="metric-val" id="metricSites">222</span>
+            <span class="metric-lbl">Sites</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-val" id="metricGraves">0</span>
+            <span class="metric-lbl">Total Graves</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-val" id="metricWeapons">0</span>
+            <span class="metric-lbl">Weapon Sites</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-val" id="metricMonuments">0</span>
+            <span class="metric-lbl">Monuments</span>
+          </div>
+        </div>
+
+        <!-- SMART PERIOD FILTER SYSTEM -->
+        <div class="filter-section">
+          <div class="section-title-row">
+            <span class="section-title"><i class="fa-solid fa-timeline"></i> ARCHAEOLOGICAL PERIODS (DATERINGER)</span>
+            <button class="btn-link" id="btnResetPeriods">Reset</button>
+          </div>
+          <p class="section-desc">Select overarching aggregate periods or refine specific sub-phases.</p>
+
+          <!-- Level 1: Samlede Perioder (Aggregate Eras) -->
+          <div class="aggregate-period-pills">
+            <button class="era-pill active" data-era="ALL">
+              <span class="era-name">All Periods</span>
+              <span class="era-count" id="countEraAll">222</span>
+            </button>
+            <button class="era-pill" data-era="PRKZ" title="Pre-Roman Iron Age (~500 BC – 1 AD)">
+              <span class="era-name">Pre-Roman Iron Age (~500 BC – 1 AD)</span>
+              <span class="era-count" id="countEraPRKZ">0</span>
+            </button>
+            <button class="era-pill" data-era="ARKZ" title="Early Roman Iron Age (~1 – 160 AD)">
+              <span class="era-name">Early Roman Iron Age (~1 – 160 AD)</span>
+              <span class="era-count" id="countEraARKZ">0</span>
+            </button>
+            <button class="era-pill" data-era="JRKZ" title="Late Roman Iron Age (~160 – 375/400 AD)">
+              <span class="era-name">Late Roman Iron Age (~160 – 375/400 AD)</span>
+              <span class="era-count" id="countEraJRKZ">0</span>
+            </button>
+            <button class="era-pill" data-era="AEGJ" title="Early Germanic Iron Age / Migration Period (~375/400 – 550 AD)">
+              <span class="era-name">Early Germanic Iron Age / Migration Period (~375/400 – 550 AD)</span>
+              <span class="era-count" id="countEraAEGJ">0</span>
+            </button>
+            <button class="era-pill" data-era="YGJ" title="Late Germanic & Viking Age (~550 – 1050 AD)">
+              <span class="era-name">Late Germanic & Viking Age (~550 – 1050 AD)</span>
+              <span class="era-count" id="countEraYGJ">0</span>
+            </button>
+          </div>
+
+          <!-- Level 2: Specific Sub-Phases (Differentiere Mellem Perioder) -->
+          <div class="sub-phases-container">
+            <div class="sub-phases-header" id="btnToggleSubPhases">
+              <span><i class="fa-solid fa-layer-group"></i> Specific Chronological Sub-Phases</span>
+              <i class="fa-solid fa-chevron-down toggle-icon" id="subPhasesChevron"></i>
+            </div>
+            <div class="sub-phases-body" id="subPhasesBody">
+              <div class="phase-chips-grid" id="phaseChipsContainer">
+                <!-- Dynamically populated phase chips -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRAVE TYPES FILTER -->
+        <div class="filter-section">
+          <div class="section-title-row">
+            <span class="section-title"><i class="fa-solid fa-urn"></i> GRAVE TYPES (GRAVFORMER)</span>
+            <button class="btn-link" id="btnResetGraveTypes">Reset</button>
+          </div>
+          <div class="grave-type-chips">
+            <label class="grave-chip">
+              <input type="checkbox" value="Urn" id="typeUrn" checked>
+              <span class="chip-label"><i class="fa-solid fa-fire"></i> Urn</span>
+            </label>
+            <label class="grave-chip">
+              <input type="checkbox" value="Cremation" id="typeCrem" checked>
+              <span class="chip-label"><i class="fa-solid fa-smoking"></i> Cremation Pit/Layer</span>
+            </label>
+            <label class="grave-chip">
+              <input type="checkbox" value="Inhumation" id="typeInh" checked>
+              <span class="chip-label"><i class="fa-solid fa-skull"></i> Inhumation (Skeletgrav)</span>
+            </label>
+            <label class="grave-chip">
+              <input type="checkbox" value="Chamber" id="typeChamber" checked>
+              <span class="chip-label"><i class="fa-solid fa-door-closed"></i> Chamber Grave</span>
+            </label>
+            <label class="grave-chip">
+              <input type="checkbox" value="Boat" id="typeBoat" checked>
+              <span class="chip-label"><i class="fa-solid fa-sailboat"></i> Boat Grave</span>
+            </label>
+            <label class="grave-chip">
+              <input type="checkbox" value="Cist" id="typeCist" checked>
+              <span class="chip-label"><i class="fa-solid fa-boxes-stacked"></i> Stone Cist (Stenkiste)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- SPECIAL ARCHAEOLOGICAL ATTRIBUTES -->
+        <div class="filter-section">
+          <span class="section-title"><i class="fa-solid fa-gem"></i> SPECIAL CONTEXTS & ATTRIBUTES</span>
+          <div class="attribute-toggles">
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-shield text-cyan"></i> Weapon Graves Only</span>
+              <label class="switch">
+                <input type="checkbox" id="filterWeaponsOnly">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-monument text-emerald"></i> Monuments Present (Barrows/Bautastene)</span>
+              <label class="switch">
+                <input type="checkbox" id="filterMonumentsOnly">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-star text-gold"></i> High Analytical Potential Only</span>
+              <label class="switch">
+                <input type="checkbox" id="filterHighPotentialOnly">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- PARISH / SOGN FILTER -->
+        <div class="filter-section">
+          <div class="section-title-row">
+            <span class="section-title"><i class="fa-solid fa-map-pin"></i> PARISH (SOGN / HERRED)</span>
+            <button class="btn-link" id="btnResetParish">All</button>
+          </div>
+          <select id="parishSelect" class="glass-select">
+            <option value="ALL">All Parishes on Bornholm</option>
+            <!-- Dynamically populated with parish codes and names -->
+          </select>
+        </div>
+
+        <!-- DOWNLOAD & DATA EXTRACTS SECTION -->
+        <div class="filter-section download-section" id="downloadSection">
+          <div class="section-title-row">
+            <span class="section-title"><i class="fa-solid fa-cloud-arrow-down"></i> DOWNLOAD & GIS EXTRACTS</span>
+            <span class="badge-tag" id="sidebarDownloadBadge">222 sites</span>
+          </div>
+          <p class="section-desc">Download current filtered dataset into GIS or spreadsheet formats:</p>
+          <div class="download-action-grid">
+            <button class="download-card-btn highlight-shp" id="sidebarDownloadSHP" title="Download ESRI Shapefile (.shp/.shx/.dbf/.prj packaged in .zip)">
+              <div class="download-card-icon"><i class="fa-solid fa-file-zipper"></i></div>
+              <div class="download-card-text">
+                <div class="download-card-title">Shapefile (.shp)</div>
+                <div class="download-card-desc">ESRI / QGIS Archive (.zip with .dbf/.prj)</div>
+              </div>
+              <span class="download-chip">GIS SHP</span>
+            </button>
+            <button class="download-card-btn" id="sidebarDownloadGeoJSON" title="Download GeoJSON FeatureCollection">
+              <div class="download-card-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+              <div class="download-card-text">
+                <div class="download-card-title">GeoJSON (GIS)</div>
+                <div class="download-card-desc">Standard WGS84 Vector Points</div>
+              </div>
+              <span class="download-chip">GEOJSON</span>
+            </button>
+            <button class="download-card-btn" id="sidebarDownloadCSV" title="Download Filtered CSV spreadsheet">
+              <div class="download-card-icon"><i class="fa-solid fa-file-csv"></i></div>
+              <div class="download-card-text">
+                <div class="download-card-title">Filtered CSV</div>
+                <div class="download-card-desc">Excel / Tabular Extract</div>
+              </div>
+              <span class="download-chip">CSV</span>
+            </button>
+            <button class="download-card-btn" id="sidebarDownloadJSON" title="Download Filtered JSON">
+              <div class="download-card-icon"><i class="fa-solid fa-file-code"></i></div>
+              <div class="download-card-text">
+                <div class="download-card-title">Filtered JSON</div>
+                <div class="download-card-desc">Full Nested Attributes</div>
+              </div>
+              <span class="download-chip">JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- RESULTS LIST SUMMARY -->
+        <div class="filter-section results-section">
+          <div class="section-title-row">
+            <span class="section-title"><i class="fa-solid fa-list-check"></i> FILTERED SITES (<span id="resultsListCount">222</span>)</span>
+            <button class="btn-link" id="btnFitMapToBounds" title="Zoom map to encompass all filtered sites">Fit Map</button>
+          </div>
+          <div class="sites-mini-list" id="sitesMiniList">
+            <!-- Dynamically populated list items -->
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Map Center Canvas -->
+    <section class="map-container" id="mapContainer">
+      <div id="map"></div>
+      <div id="globeContainer" class="globe-canvas-container" style="display:none;"></div>
+
+      <!-- Map Floating Overlay Badges -->
+      <div class="map-floating-overlay-top">
+        <div class="glass-badge" id="mapModeBadge">
+          <i class="fa-solid fa-satellite"></i> ESRI World Imagery &bull; Local Bornholm
+        </div>
+        <div class="glass-badge" id="zoomLevelBadge">
+          Zoom: 10.5
+        </div>
+      </div>
+
+      <!-- Floating Map Legend -->
+      <div class="map-floating-legend glass-panel">
+        <div class="legend-header">
+          <span>Marker Legend</span>
+          <button class="btn-close-tiny" id="btnToggleLegend"><i class="fa-solid fa-chevron-up"></i></button>
+        </div>
+        <div class="legend-content" id="legendContent">
+          <div class="legend-item">
+            <span class="legend-dot marker-elite"></span>
+            <span>Elite / Weapon Grave Site</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot marker-monument"></span>
+            <span>Burial Mound / Standing Stones</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot marker-standard"></span>
+            <span>Standard Flat-Field Cemetery</span>
+          </div>
+          <div class="legend-divider"></div>
+          <div class="legend-item">
+            <span class="legend-size-demo"></span>
+            <span class="legend-size-text">Size corresponds to Total Graves</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Drawer: Comprehensive Archaeological Site Dossier -->
+    <aside class="glass-dossier-drawer" id="dossierDrawer">
+      <div class="dossier-header">
+        <button class="btn-close-drawer" id="btnCloseDossier" title="Close Dossier">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="dossier-tags" id="dossierTags">
+          <!-- Badges dynamically added -->
+        </div>
+        <h2 class="dossier-title" id="dossierTitle">Site Details</h2>
+        <div class="dossier-subtitle" id="dossierSubtitle">Select a site on the map or list</div>
+      </div>
+
+      <div class="dossier-body" id="dossierBody">
+        <!-- Placeholder when nothing is selected -->
+        <div class="dossier-empty-state">
+          <i class="fa-solid fa-location-crosshairs empty-icon"></i>
+          <p>Click on any marker on the map or from the list to view comprehensive archaeological context, grave counts, artifact notes, and references.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Bottom Expandable Table Overlay -->
+  <div class="glass-table-overlay" id="tableOverlay" style="display:none;">
+    <div class="table-container-header">
+      <div class="table-title">
+        <i class="fa-solid fa-table"></i> Bornholm Graves Master Catalog (<span id="tableCountBadge">0</span> records)
+      </div>
+      <div class="table-controls">
+        <input type="text" id="tableQuickFilter" placeholder="Filter table rows..." class="glass-input-sm">
+        <button class="glass-btn btn-sm btn-primary-glass" id="btnExportTableSHP" title="Export current table view as ESRI Shapefile (.shp / .zip)"><i class="fa-solid fa-file-zipper"></i> Shapefile (.shp)</button>
+        <button class="glass-btn btn-sm" id="btnExportTableCSV" title="Export current table view as CSV"><i class="fa-solid fa-download"></i> CSV</button>
+        <button class="glass-btn btn-sm btn-close" id="btnCloseTable"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="table-scroll-wrapper">
+      <table id="masterCatalogTable" class="glass-data-table">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Info Modal -->
+  <div class="glass-modal-backdrop" id="infoModalBackdrop" style="display:none;">
+    <div class="glass-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-landmark"></i> About Bornholm Graves Explorer</h3>
+        <button class="btn-close-modal" id="btnCloseInfoModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <h4>Dataset Origins & Harmonization</h4>
+        <p>This application dynamically parses and visualizes <strong>bornholm_graves_master.csv</strong> (222 archaeological sites), synthesized from:</p>
+        <ul>
+          <li><strong>Fund og Fortidsminder (Slots- og Kulturstyrelsen)</strong> baseline GIS registry.</li>
+          <li><strong>Lutz, L. H. (2010)</strong>: <em>Die Insel in der Mitte: Bornholm im 2.–4. Jahrhundert</em> (39 primary catalogue sites and 23 supplemental sites).</li>
+          <li><strong>Jørgensen, L. (1985)</strong>: <em>Gravpladser og samfundsforhold på Bornholm i perioden 175–975 e.Kr.</em> (18 supplementary regional sites and long-term continuity data).</li>
+          <li><strong>Foss, P. (1989)</strong>: <em>Baunegård - grave fra yngre romersk og ældre germansk jernalder</em>.</li>
+          <li><strong>Nielsen, F. O. (2026)</strong>: <em>Oversigt over gravpladser fra ældre jernalder på Bornholm</em> (Bornholms Museum unpublished research archive / registrant).</li>
+        </ul>
+        <h4>Live Master CSV Synchronization</h4>
+        <p>Any modifications saved directly into <code>bornholm_graves_master.csv</code> are automatically detected and reloaded into the visualizer in real time.</p>
+        <h4>Period Classifications</h4>
+        <ul>
+          <li><strong>Pre-Roman Iron Age</strong>: Førromersk jernalder (~500 BC – 1 AD)</li>
+          <li><strong>Early Roman Iron Age</strong>: Ældre romersk jernalder (~1 – 160 AD)</li>
+          <li><strong>Late Roman Iron Age</strong>: Yngre romersk jernalder (~160 – 375/400 AD)</li>
+          <li><strong>Early Germanic Iron Age / Migration Period</strong>: Folkevandringstid (~375/400 – 550 AD)</li>
+          <li><strong>Late Germanic & Viking Age</strong>: Merovingertid / Vendeltid & Vikingetid (~550 – 1050 AD)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
+  <script src="shpwrite.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
