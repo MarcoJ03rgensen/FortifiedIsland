@@ -612,7 +612,7 @@ function hasCount(val) {
 function updateUI() {
   // Update Header Badges
   const countBadge = document.getElementById('exportCountBadge');
-  if (countBadge) countBadge.textContent = state.filteredSites.length;
+  if (countBadge) countBadge.textContent = `${state.filteredSites.length} sites`;
 
   const exportDropdownCount = document.getElementById('exportDropdownCount');
   if (exportDropdownCount) exportDropdownCount.textContent = `${state.filteredSites.length} sites`;
