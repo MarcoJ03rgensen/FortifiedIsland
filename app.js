@@ -1,11 +1,11 @@
 /**
  * BORNHOLM GRAVES EXPLORER - APPLICATION CORE
  * Features:
- * - MapLibre 3D Globe & Local Planar ESRI Satellite View Switcher
- * - Smart Hierarchical Period Filter (Aggregate Eras vs. Specific Sub-phases)
- * - Real-Time Live Sync with bornholm_graves_master.csv
- * - Custom Glassmorphism UI & Archaeological Dossier Inspector
- * - Instant Extraction / Data Export (CSV, JSON, GeoJSON)
+ * - MapLibre satellite map of Bornholm
+ * - Hierarchical period filter (main periods vs. specific sub-phases)
+ * - Live reload when bornholm_graves_master.csv changes
+ * - Site detail drawer
+ * - Data export (CSV, JSON, GeoJSON, Shapefile)
  */
 
 // Global State
@@ -21,7 +21,7 @@ const state = {
   highPotentialOnly: false,
   selectedParish: 'ALL',
   searchQuery: '',
-  mapMode: 'local', // 'local' or 'globe'
+  tableQuery: '',
   showLabels: true,
   showHeatmap: false,
   lastModifiedHeader: null,
@@ -55,6 +55,17 @@ const PARISH_NAMES = {
   '060406': 'Østermarie'
 };
 
+// Safe HTML sanitizer
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Sub-phase definitions
 const SUB_PHASE_KEYS = [
   { key: 'B2/C1a', label: 'B2 / C1a (Transitional)' },
@@ -84,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================================
-// MAP INITIALIZATION (MAPLIBRE GL + ESRI SATELLITE GLOBE)
+// MAP INITIALIZATION (MAPLIBRE GL + ESRI SATELLITE)
 // ==========================================================================
 function initMap() {
   hoverPopup = new maplibregl.Popup({
@@ -138,7 +149,7 @@ function initMap() {
     pitch: 0,
     bearing: 0,
     maxZoom: 18,
-    minZoom: 1.5,
+    minZoom: 6,
     attributionControl: false
   });
 
@@ -152,7 +163,7 @@ function initMap() {
 
   map.on('zoom', () => {
     const zb = document.getElementById('zoomLevelBadge');
-    if (zb) zb.textContent = `Zoom: ${map.getZoom().toFixed(1)}`;
+    if (zb) zb.textContent = `Zoom ${map.getZoom().toFixed(1)}`;
   });
 }
 
@@ -257,9 +268,9 @@ function addMapDataLayers() {
     const p = e.features[0].properties;
     const coords = e.features[0].geometry.coordinates.slice();
 
-    const gravesText = p.totalGraves > 0 ? `${p.totalGraves} graves` : 'Grave site (count unspecified)';
-    const weaponBadge = p.hasWeapons ? '<span style="color:#38bdf8;">⚔️ Weapons</span>' : '';
-    const monumentBadge = p.hasMonuments ? '<span style="color:#34d399;">🪨 Monument</span>' : '';
+    const gravesText = p.totalGraves > 0 ? `${p.totalGraves} graves` : 'Number of graves unknown';
+    const weaponBadge = p.hasWeapons ? '<span style="color:#38bdf8;"><i class="fa-solid fa-shield"></i> Weapons</span>' : '';
+    const monumentBadge = p.hasMonuments ? '<span style="color:#34d399;"><i class="fa-solid fa-monument"></i> Monument</span>' : '';
 
     const html = `
       <div class="popup-site-title">${p.stednavn}</div>
@@ -312,17 +323,12 @@ function updateMapData() {
     type: 'FeatureCollection',
     features: features
   });
-
-  updateGlobeData();
 }
 
 function flyToSite(site) {
   const lat = parseFloat(site.wgs84_latitude);
   const lon = parseFloat(site.wgs84_longitude);
   if (!isNaN(lat) && !isNaN(lon) && lat > 54.0 && lon > 14.0) {
-    if (state.mapMode === 'globe') {
-      switchToLocalView();
-    }
     map.flyTo({
       center: [lon, lat],
       zoom: Math.max(map.getZoom(), 13.5),
@@ -331,7 +337,7 @@ function flyToSite(site) {
       duration: 1500
     });
   } else {
-    showNotification(`"${site.stednavn}": No geographic coordinates recorded in source archive.`);
+    showNotification(`${site.stednavn} has no recorded coordinates.`);
   }
 }
 
@@ -341,7 +347,7 @@ function flyToSite(site) {
 async function loadMasterData() {
   const statusPill = document.getElementById('syncStatusPill');
   const syncText = document.getElementById('syncText');
-  if (syncText) syncText.textContent = 'Syncing...';
+  if (syncText) syncText.textContent = 'Loading…';
 
   try {
     // Add cache-busting timestamp to guarantee freshness from disk
@@ -360,11 +366,11 @@ async function loadMasterData() {
       skipEmptyLines: true,
       complete: (results) => {
         processParsedData(results.data);
-        if (syncText) syncText.textContent = `Live (${results.data.length} sites)`;
+        if (syncText) syncText.textContent = `Live · ${results.data.length} sites`;
       },
       error: (err) => {
         console.error('PapaParse error:', err);
-        if (syncText) syncText.textContent = 'CSV Parse Error';
+        if (syncText) syncText.textContent = 'Could not read CSV';
       }
     });
   } catch (error) {
@@ -373,9 +379,9 @@ async function loadMasterData() {
       const jRes = await fetch(`bornholm_graves_master.json?t=${Date.now()}`);
       const jData = await jRes.json();
       processParsedData(jData);
-      if (syncText) syncText.textContent = `Live (${jData.length} sites)`;
+      if (syncText) syncText.textContent = `Live · ${jData.length} sites`;
     } catch (e) {
-      if (syncText) syncText.textContent = 'Sync Offline';
+      if (syncText) syncText.textContent = 'Offline';
     }
   }
 }
@@ -407,7 +413,7 @@ function startLiveSyncWatcher() {
         console.log('Detected change in bornholm_graves_master.csv on disk! Live reloading...');
         state.lastModifiedHeader = curHeader;
         loadMasterData();
-        showNotification('Master CSV modified on disk – dataset reloaded!');
+        showNotification('Data updated from CSV');
       }
     } catch (e) {
       // Ignore network polling blips
@@ -608,6 +614,9 @@ function updateUI() {
   const countBadge = document.getElementById('exportCountBadge');
   if (countBadge) countBadge.textContent = state.filteredSites.length;
 
+  const exportDropdownCount = document.getElementById('exportDropdownCount');
+  if (exportDropdownCount) exportDropdownCount.textContent = `${state.filteredSites.length} sites`;
+
   const sidebarDownloadBadge = document.getElementById('sidebarDownloadBadge');
   if (sidebarDownloadBadge) sidebarDownloadBadge.textContent = `${state.filteredSites.length} sites`;
 
@@ -679,7 +688,7 @@ function renderMiniList() {
   });
 
   if (state.filteredSites.length > 80) {
-    html += `<div style="text-align:center;font-size:11px;color:var(--text-dim);padding:6px;">+ ${state.filteredSites.length - 80} more sites (use search or table)</div>`;
+    html += `<div style="text-align:center;font-size:11px;color:var(--text-dim);padding:6px;">+ ${state.filteredSites.length - 80} more – narrow your search or open the table</div>`;
   }
 
   listContainer.innerHTML = html;
@@ -739,7 +748,7 @@ function populateParishDropdown() {
   });
 
   const sorted = Array.from(parishes).sort();
-  let html = '<option value="ALL">All Parishes on Bornholm</option>';
+  let html = '<option value="ALL">All parishes</option>';
   sorted.forEach(pCode => {
     const pName = PARISH_NAMES[pCode] || `Parish ${pCode}`;
     const count = state.allSites.filter(s => normalizeStednr(s.stednr) === pCode).length;
@@ -774,16 +783,16 @@ function openSiteDossier(site) {
   drawer.classList.add('open');
 
   title.textContent = site.stednavn;
-  const altText = site.alt_stednavm ? `Alt: ${site.alt_stednavm} &bull; ` : '';
-  subtitle.innerHTML = `${altText}Parish: <strong>${getParishName(site.stednr)}</strong> (${normalizeStednr(site.stednr)})`;
+  const altText = site.alt_stednavm ? `Also: ${site.alt_stednavm} &bull; ` : '';
+  subtitle.innerHTML = `${altText}${getParishName(site.stednr)} parish (${normalizeStednr(site.stednr)})`;
 
   // Badges
   let tagsHtml = '';
   if (site.Weapons_yes_or_no === 'Yes') {
-    tagsHtml += '<span class="dossier-badge badge-weapon"><i class="fa-solid fa-shield"></i> Weapon Grave</span>';
+    tagsHtml += '<span class="dossier-badge badge-weapon"><i class="fa-solid fa-shield"></i> Weapons</span>';
   }
   if (site.Monuments_yes_or_no === 'Yes') {
-    tagsHtml += '<span class="dossier-badge badge-monument"><i class="fa-solid fa-monument"></i> Surface Monument</span>';
+    tagsHtml += '<span class="dossier-badge badge-monument"><i class="fa-solid fa-monument"></i> Monument</span>';
   }
   if (site.Analytical_potential) {
     tagsHtml += `<span class="dossier-badge badge-potential"><i class="fa-solid fa-award"></i> ${site.Analytical_potential.split('(')[0].trim()}</span>`;
@@ -804,54 +813,103 @@ function openSiteDossier(site) {
   const coordSectionHtml = hasCoords ? `
     <div class="coord-pill">
       <span>WGS84: ${lat}, ${lon}</span>
-      <button class="btn-copy-coord" title="Copy WGS84 Coordinates" onclick="navigator.clipboard.writeText('${lat}, ${lon}')">
+      <button class="btn-copy-coord" title="Copy" onclick="navigator.clipboard.writeText('${lat}, ${lon}')">
         <i class="fa-regular fa-copy"></i>
       </button>
     </div>
     <div class="coord-pill" style="margin-top:4px;">
       <span>UTM32N: ${easting} E, ${northing} N</span>
-      <button class="btn-copy-coord" title="Copy UTM Coordinates" onclick="navigator.clipboard.writeText('${easting}, ${northing}')">
+      <button class="btn-copy-coord" title="Copy" onclick="navigator.clipboard.writeText('${easting}, ${northing}')">
         <i class="fa-regular fa-copy"></i>
       </button>
     </div>
   ` : `
-    <div class="coord-pill" style="color:var(--text-muted);background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);padding:7px 10px;">
-      <span><i class="fa-solid fa-location-slash" style="margin-right:6px;color:#f59e0b;"></i>No spatial coordinates recorded in source archive</span>
+    <div class="coord-pill" style="color:var(--text-muted);background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);padding:7px 10px;">
+      <span><i class="fa-solid fa-location-dot" style="margin-right:6px;color:#f59e0b;"></i>No coordinates recorded</span>
     </div>
   `;
 
   let bodyHtml = `
-    <!-- Spatial & Administrative Register -->
+    <!-- Location -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-map-location-dot"></i> Geographical & Registry Reference</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-map-location-dot"></i> Location</div>
       <div class="dossier-card-content">
-        <div><strong>National System No:</strong> ${site.systemnr || 'Literature reference'}</div>
-        <div><strong>Parish / Local No:</strong> Stednr ${normalizeStednr(site.stednr)} &bull; Loknr ${site.loknr || '-'}</div>
+        <div><strong>System no.:</strong> ${site.systemnr || 'Literature only'}</div>
+        <div><strong>Parish / locality no.:</strong> ${normalizeStednr(site.stednr)} / ${site.loknr || '-'}</div>
         ${coordSectionHtml}
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-          ${heritageUrl ? `
-            <a href="${heritageUrl}" target="_blank" rel="noopener noreferrer" class="btn-external-heritage" style="flex:1;">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in SKS
+        ${heritageUrl ? `
+          <div style="margin-top:12px;">
+            <a href="${heritageUrl}" target="_blank" rel="noopener noreferrer" class="btn-external-heritage">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Fund og Fortidsminder
             </a>
-          ` : ''}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- Dedicated Site GIS & Data Download -->
+    <div class="dossier-card dossier-download-card">
+      <div class="dossier-card-title"><i class="fa-solid fa-cloud-arrow-down text-gold"></i> Download Site Data</div>
+      <div class="dossier-card-content">
+        <div class="dossier-dl-site-badge">
+          <i class="fa-solid fa-circle-check"></i>
+          <span><strong>Site ${escapeHtml(site.systemnr || 'Record')}:</strong> ${escapeHtml(site.stednavn || 'Selected Site')}</span>
+        </div>
+        <p class="dossier-dl-intro">
+          Download geospatial coordinates and full archaeological attributes for this burial site:
+        </p>
+        <div class="dossier-dl-grid">
           ${hasCoords ? `
-            <button class="glass-btn-xs" id="btnExportSiteSHP" title="Download this site as ESRI Shapefile (.shp / .zip)">
-              <i class="fa-solid fa-file-zipper text-cyan"></i> Export SHP
+            <button class="dossier-dl-card-btn dl-btn-shp" id="btnExportSiteSHP" title="Download Shapefile (.zip) for ${escapeHtml(site.stednavn || 'site')}">
+              <div class="dossier-dl-icon shp-icon"><i class="fa-solid fa-file-zipper"></i></div>
+              <div class="dossier-dl-text">
+                <div class="dossier-dl-head">Shapefile Package (.zip)</div>
+                <div class="dossier-dl-sub">Point layer for QGIS, ArcGIS &amp; CAD</div>
+              </div>
             </button>
-            <button class="glass-btn-xs" id="btnExportSiteGeoJSON" title="Download this site as GeoJSON">
-              <i class="fa-solid fa-map-location-dot"></i> GeoJSON
+            <button class="dossier-dl-card-btn dl-btn-geojson" id="btnExportSiteGeoJSON" title="Download GeoJSON for ${escapeHtml(site.stednavn || 'site')}">
+              <div class="dossier-dl-icon geo-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+              <div class="dossier-dl-text">
+                <div class="dossier-dl-head">GeoJSON Feature (.geojson)</div>
+                <div class="dossier-dl-sub">WGS84 point with all 28 attributes</div>
+              </div>
             </button>
-          ` : ''}
+          ` : `
+            <div class="dossier-dl-warning">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <div>
+                <strong>No GPS Coordinates Recorded</strong>
+                <span>GIS shapefile and GeoJSON require coordinates. Tabular CSV is available below.</span>
+              </div>
+            </div>
+          `}
+          <button class="dossier-dl-card-btn dl-btn-csv" id="btnExportSiteCSV" title="Download CSV record for ${escapeHtml(site.stednavn || 'site')}">
+            <div class="dossier-dl-icon csv-icon"><i class="fa-solid fa-file-csv"></i></div>
+            <div class="dossier-dl-text">
+              <div class="dossier-dl-head">Single Site CSV (.csv)</div>
+              <div class="dossier-dl-sub">Spreadsheet row for Excel &amp; data analysis</div>
+            </div>
+          </button>
+          <a href="https://web.geolibre.app/?data=https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson${site.wgs84_latitude && site.wgs84_longitude ? `&lat=${encodeURIComponent(site.wgs84_latitude)}&lon=${encodeURIComponent(site.wgs84_longitude)}&zoom=15` : ''}" target="_blank" rel="noopener noreferrer" class="dossier-dl-card-btn dl-btn-geolibre" id="btnSiteGeoLibre" title="Open and auto-load Bornholm dataset centered on ${escapeHtml(site.stednavn || 'site')} in GeoLibre">
+            <div class="dossier-dl-icon geolibre-icon"><i class="fa-solid fa-earth-europe"></i></div>
+            <div class="dossier-dl-text">
+              <div class="dossier-dl-head">
+                <span>Inspect in GeoLibre</span>
+                <span class="file-ext-badge ext-webgis">AUTO-LOAD ↗</span>
+              </div>
+              <div class="dossier-dl-sub">Auto-loads dataset directly onto map in web.geolibre.app</div>
+            </div>
+          </a>
         </div>
       </div>
     </div>
 
-    <!-- Grave Counts Breakdown -->
+    <!-- Graves -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-monument"></i> Burial Census & Grave Types</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-monument"></i> Graves</div>
       <div class="dossier-card-content">
         <div style="font-size:14px;margin-bottom:6px;">
-          Total Recorded Graves: <strong style="color:var(--primary-cyan);font-size:18px;">${site.Total_graves || 'Unspecified'}</strong>
+          Total: <strong style="color:var(--primary-cyan);font-size:18px;">${site.Total_graves || 'Unknown'}</strong>
         </div>
         <div class="grave-breakdown-grid">
           <div class="breakdown-box">
@@ -882,58 +940,58 @@ function openSiteDossier(site) {
       </div>
     </div>
 
-    <!-- Weapons Analysis -->
+    <!-- Weapons -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-shield-halved"></i> Weapons & Warrior Equipment</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-shield-halved"></i> Weapons</div>
       <div class="dossier-card-content">
         <div style="margin-bottom:6px;">
-          Presence of Weapons: <strong style="color:${site.Weapons_yes_or_no === 'Yes' ? 'var(--primary-cyan)' : 'var(--text-muted)'};">${site.Weapons_yes_or_no || 'No'}</strong>
+          Found: <strong style="color:${site.Weapons_yes_or_no === 'Yes' ? 'var(--primary-cyan)' : 'var(--text-muted)'};">${site.Weapons_yes_or_no || 'No'}</strong>
         </div>
-        <p>${site.Weapons_notes || 'No weapons noted in published catalogue.'}</p>
+        <p>${site.Weapons_notes || 'No weapons recorded.'}</p>
       </div>
     </div>
 
-    <!-- Surface Monuments -->
+    <!-- Monuments -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-mountain"></i> Surface Monuments & Earthworks</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-mountain"></i> Monuments</div>
       <div class="dossier-card-content">
         <div style="margin-bottom:6px;">
-          Preserved Monuments: <strong style="color:${site.Monuments_yes_or_no === 'Yes' ? 'var(--accent-emerald)' : 'var(--text-muted)'};">${site.Monuments_yes_or_no || 'No'}</strong>
+          Present: <strong style="color:${site.Monuments_yes_or_no === 'Yes' ? 'var(--accent-emerald)' : 'var(--text-muted)'};">${site.Monuments_yes_or_no || 'No'}</strong>
         </div>
-        <p>${site.Monuments_notes || 'No surface monuments recorded.'}</p>
+        <p>${site.Monuments_notes || 'No monuments recorded.'}</p>
       </div>
     </div>
 
-    <!-- Excavation History & Research State -->
+    <!-- Excavation -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-person-digging"></i> Excavation History & Fieldwork</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-person-digging"></i> Excavation</div>
       <div class="dossier-card-content">
         <p>${site.excavation_state || 'No excavation history recorded.'}</p>
         <div style="margin-top:8px;">
-          <strong>Museum Numbers:</strong> <span style="font-family:var(--font-mono);">${site.NM_and_BMR || 'N/A'}</span>
+          <strong>Museum no.:</strong> <span style="font-family:var(--font-mono);">${site.NM_and_BMR || '–'}</span>
         </div>
       </div>
     </div>
 
-    <!-- Analytical Potential & Synthesis -->
+    <!-- Research potential -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-microscope"></i> Analytical Potential & Evaluation</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-microscope"></i> Research potential</div>
       <div class="dossier-card-content">
-        <p>${site.Analytical_potential || 'Unassessed'}</p>
+        <p>${site.Analytical_potential || 'Not assessed'}</p>
       </div>
     </div>
 
-    <!-- Academic Notes & Sources -->
+    <!-- Sources & notes -->
     <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-book-bookmark"></i> Academic Citations & Catalog Notes</div>
+      <div class="dossier-card-title"><i class="fa-solid fa-book-bookmark"></i> Sources &amp; notes</div>
       <div class="dossier-card-content">
         <div style="margin-bottom:10px;">
-          <strong>Source(s):</strong><br>
+          <strong>Sources:</strong><br>
           <span style="font-size:11.5px;color:var(--text-muted);">${site['Source(s)'] || 'Fund og Fortidsminder'}</span>
         </div>
         <div>
-          <strong>Detailed Synthesis Notes:</strong><br>
-          <p style="margin-top:4px;font-size:12px;">${site.Notes || 'No notes.'}</p>
+          <strong>Notes:</strong><br>
+          <p style="margin-top:4px;font-size:12px;">${site.Notes || '–'}</p>
         </div>
       </div>
     </div>
@@ -954,7 +1012,7 @@ function openSiteDossier(site) {
       const latNum = parseFloat(site.wgs84_latitude);
       const lonNum = parseFloat(site.wgs84_longitude);
       if (isNaN(latNum) || isNaN(lonNum) || latNum <= 54.0 || lonNum <= 14.0) {
-        showNotification(`Cannot export spatial GeoJSON: "${site.stednavn}" has no recorded coordinates.`);
+        showNotification(`${site.stednavn} has no recorded coordinates.`);
         return;
       }
       const singleGeo = {
@@ -969,6 +1027,19 @@ function openSiteDossier(site) {
         }]
       };
       downloadBlob(new Blob([JSON.stringify(singleGeo, null, 2)], { type: 'application/geo+json;charset=utf-8;' }), `bornholm_site_${site.systemnr || 'site'}.geojson`);
+    });
+  }
+  const btnSiteCSV = document.getElementById('btnExportSiteCSV');
+  if (btnSiteCSV) {
+    btnSiteCSV.addEventListener('click', () => {
+      const csvStr = Papa.unparse([site]);
+      downloadBlob(new Blob(["\ufeff" + csvStr], { type: 'text/csv;charset=utf-8;' }), `bornholm_site_${site.systemnr || (site.stednavn || 'site').replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
+    });
+  }
+  const btnSiteGeoLibre = document.getElementById('btnSiteGeoLibre');
+  if (btnSiteGeoLibre) {
+    btnSiteGeoLibre.addEventListener('click', () => {
+      showNotification(`Auto-loading Bornholm Graves dataset into GeoLibre for ${site.stednavn || 'site'}...`);
     });
   }
 
@@ -1018,7 +1089,7 @@ function exportData(format) {
 
 function exportShapefile(dataToExport, filename) {
   if (typeof shpwrite === 'undefined') {
-    showNotification('Shapefile library loading... please try again in a moment.');
+    showNotification('Shapefile export is still loading – try again in a moment.');
     return;
   }
 
@@ -1030,7 +1101,7 @@ function exportShapefile(dataToExport, filename) {
   });
 
   if (validSites.length === 0) {
-    showNotification('No sites with spatial coordinates in current filter to export to SHP.');
+    showNotification('None of the current sites have coordinates.');
     return;
   }
 
@@ -1070,7 +1141,7 @@ function exportShapefile(dataToExport, filename) {
     }))
   };
 
-  showNotification('Packaging Shapefile archive...');
+  showNotification('Preparing shapefile…');
   try {
     shpwrite.zip(geojson, {
       folder: filename,
@@ -1081,7 +1152,7 @@ function exportShapefile(dataToExport, filename) {
       }
     }).then(blob => {
       downloadBlob(blob, `${filename}.zip`);
-      showNotification(`Shapefile (.zip) downloaded with ${validSites.length} spatial features!`);
+      showNotification(`Shapefile downloaded (${validSites.length} sites)`);
     }).catch(err => {
       console.error('Error generating Shapefile zip:', err);
       showNotification('Error generating Shapefile: ' + (err.message || err));
@@ -1105,7 +1176,7 @@ function downloadBlob(blob, filename) {
     if (a.parentNode) document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, 10000);
-  showNotification(`Downloaded: ${filename}`);
+  showNotification(`Downloaded ${filename}`);
 }
 
 // ==========================================================================
@@ -1116,16 +1187,22 @@ function renderTableData() {
   if (overlay.style.display === 'none') return;
 
   const countBadge = document.getElementById('tableCountBadge');
-  if (countBadge) countBadge.textContent = state.filteredSites.length;
 
   const thead = document.getElementById('tableHead');
   const tbody = document.getElementById('tableBody');
 
-  const headers = ['systemnr', 'stednavn', 'alt_stednavm', 'stednr', 'loknr', 'Total_graves', 'Weapons_yes_or_no', 'Monuments_yes_or_no', 'Analytical_potential'];
+  const headers = ['System no.', 'Name', 'Other name', 'Parish no.', 'Locality no.', 'Graves', 'Weapons', 'Monuments', 'Research potential'];
   thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
+  const tq = state.tableQuery.toLowerCase().trim();
+  const rows = tq
+    ? state.filteredSites.filter(s => [s.systemnr, s.stednavn, s.alt_stednavm, getParishName(s.stednr), s.Analytical_potential]
+        .some(v => v && v.toString().toLowerCase().includes(tq)))
+    : state.filteredSites;
+  if (countBadge) countBadge.textContent = rows.length;
+
   let rowsHtml = '';
-  state.filteredSites.slice(0, 150).forEach(s => {
+  rows.slice(0, 150).forEach(s => {
     rowsHtml += `
       <tr onclick="window.selectSiteFromTable('${s.systemnr || s.stednavn}')">
         <td>${s.systemnr || '-'}</td>
@@ -1152,151 +1229,25 @@ window.selectSiteFromTable = function(id) {
 };
 
 // ==========================================================================
-// 3D PLANETARY GLOBE & CARTOGRAPHIC VIEW ENGINE
-// ==========================================================================
-let globeViz = null;
-
-function initGlobe() {
-  const container = document.getElementById('globeContainer');
-  if (!container) return;
-  if (globeViz) {
-    updateGlobeData();
-    return;
-  }
-
-  if (typeof Globe === 'undefined') {
-    console.warn('Globe.gl library not loaded; falling back to map view.');
-    return;
-  }
-
-  try {
-    container.innerHTML = '';
-    globeViz = Globe()(container)
-      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
-      .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-      .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-      .showAtmosphere(true)
-      .atmosphereColor('#38bdf8')
-      .atmosphereAltitude(0.2)
-      .pointLat(d => parseFloat(d.wgs84_latitude))
-      .pointLng(d => parseFloat(d.wgs84_longitude))
-      .pointColor(d => d.Weapons_yes_or_no === 'Yes' ? '#38bdf8' : (d.Monuments_yes_or_no === 'Yes' ? '#34d399' : '#f59e0b'))
-      .pointAltitude(0.018)
-      .pointRadius(0.35)
-      .pointLabel(d => `
-        <div style="background:rgba(15,23,42,0.92);padding:8px 12px;border-radius:8px;border:1px solid rgba(56,189,248,0.4);font-family:sans-serif;color:#f8fafc;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,0.6);">
-          <div style="color:#38bdf8;font-weight:700;font-size:13px;margin-bottom:2px;">${d.stednavn}</div>
-          <div style="color:#94a3b8;font-size:11px;">${d.Total_graves || 0} graves &bull; ${getParishName(d.stednr)}</div>
-        </div>
-      `)
-      .onPointClick((d) => {
-        switchToLocalView();
-        setTimeout(() => {
-          openSiteDossier(d);
-          flyToSite(d);
-        }, 300);
-      });
-
-    globeViz.pointOfView({ lat: 55.13, lng: 14.92, altitude: 0.85 }, 2000);
-
-    if (globeViz.controls()) {
-      globeViz.controls().autoRotate = true;
-      globeViz.controls().autoRotateSpeed = 0.35;
-    }
-
-    updateGlobeData();
-  } catch (err) {
-    console.error('Error creating 3D globe:', err);
-  }
-}
-
-function updateGlobeData() {
-  if (!globeViz) return;
-  const sitesWithCoords = state.filteredSites.filter(s => {
-    const lat = parseFloat(s.wgs84_latitude);
-    const lon = parseFloat(s.wgs84_longitude);
-    return !isNaN(lat) && !isNaN(lon) && lat > 54.0 && lon > 14.0;
-  });
-  globeViz.pointsData(sitesWithCoords);
-}
-
-function switchToGlobeView() {
-  const btnLocal = document.getElementById('btnViewLocal');
-  const btnGlobe = document.getElementById('btnViewGlobe');
-  if (btnGlobe) btnGlobe.classList.add('active');
-  if (btnLocal) btnLocal.classList.remove('active');
-  state.mapMode = 'globe';
-
-  const globeContainer = document.getElementById('globeContainer');
-  const mapEl = document.getElementById('map');
-
-  if (typeof Globe !== 'undefined') {
-    if (mapEl) mapEl.style.display = 'none';
-    if (globeContainer) globeContainer.style.display = 'block';
-    if (!globeViz) {
-      initGlobe();
-    } else {
-      updateGlobeData();
-      globeViz.pointOfView({ lat: 55.13, lng: 14.92, altitude: 0.85 }, 1500);
-    }
-  } else {
-    // If Globe.gl is loading, smoothly zoom out MapLibre as a graceful fallback
-    if (mapEl) mapEl.style.display = 'block';
-    if (globeContainer) globeContainer.style.display = 'none';
-    map.flyTo({
-      center: [14.9, 55.0],
-      zoom: 3.8,
-      pitch: 0,
-      bearing: 0,
-      duration: 2000
-    });
-  }
-
-  const modeBadge = document.getElementById('mapModeBadge');
-  if (modeBadge) modeBadge.innerHTML = '<i class="fa-solid fa-earth-europe"></i> 3D Planetary Globe View';
-}
-
-function switchToLocalView() {
-  const btnLocal = document.getElementById('btnViewLocal');
-  const btnGlobe = document.getElementById('btnViewGlobe');
-  if (btnLocal) btnLocal.classList.add('active');
-  if (btnGlobe) btnGlobe.classList.remove('active');
-  state.mapMode = 'local';
-
-  const globeContainer = document.getElementById('globeContainer');
-  const mapEl = document.getElementById('map');
-  if (globeContainer) globeContainer.style.display = 'none';
-  if (mapEl) mapEl.style.display = 'block';
-  if (map) {
-    map.resize();
-    map.flyTo({
-      center: [14.92, 55.13],
-      zoom: 10.4,
-      pitch: 0,
-      bearing: 0,
-      duration: 1500
-    });
-  }
-
-  const modeBadge = document.getElementById('mapModeBadge');
-  if (modeBadge) modeBadge.innerHTML = '<i class="fa-solid fa-satellite"></i> ESRI World Imagery &bull; Local Bornholm';
-}
-
-// ==========================================================================
-// EVENT LISTENERS & PROJECTION CONTROLS
+// EVENT LISTENERS
 // ==========================================================================
 function initEventListeners() {
-  // Projection & View Mode Switchers
-  const btnLocal = document.getElementById('btnViewLocal');
-  const btnGlobe = document.getElementById('btnViewGlobe');
+  // Legend collapse
+  const btnToggleLegend = document.getElementById('btnToggleLegend');
+  if (btnToggleLegend) {
+    btnToggleLegend.addEventListener('click', () => {
+      btnToggleLegend.closest('.map-floating-legend').classList.toggle('collapsed');
+    });
+  }
 
-  btnLocal.addEventListener('click', () => {
-    switchToLocalView();
-  });
-
-  btnGlobe.addEventListener('click', () => {
-    switchToGlobeView();
-  });
+  // Table row filter
+  const tableQuickFilter = document.getElementById('tableQuickFilter');
+  if (tableQuickFilter) {
+    tableQuickFilter.addEventListener('input', (e) => {
+      state.tableQuery = e.target.value;
+      renderTableData();
+    });
+  }
 
   // Layer Toggles
   const btnLabels = document.getElementById('btnToggleLabels');
@@ -1445,6 +1396,12 @@ function initEventListeners() {
     const csvStr = Papa.unparse(state.allSites);
     downloadBlob(new Blob(["\ufeff" + csvStr], { type: 'text/csv;charset=utf-8;' }), 'bornholm_graves_master.csv');
   });
+  const btnOpenGeoLibreMenu = document.getElementById('btnOpenGeoLibreMenu');
+  if (btnOpenGeoLibreMenu) {
+    btnOpenGeoLibreMenu.addEventListener('click', () => {
+      showNotification('Auto-loading Bornholm Graves master layer in GeoLibre...');
+    });
+  }
 
   // Dedicated Sidebar Download Section
   const sbSHP = document.getElementById('sidebarDownloadSHP');
@@ -1465,7 +1422,7 @@ function initEventListeners() {
   // Manual Reload Button
   document.getElementById('btnManualReload').addEventListener('click', () => {
     loadMasterData();
-    showNotification('Manually reloaded dataset from disk.');
+    showNotification('Data reloaded');
   });
 
   // Dossier Close Button
@@ -1523,11 +1480,11 @@ function showNotification(msg) {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: rgba(15, 23, 42, 0.95);
+      background: linear-gradient(135deg, rgba(20, 60, 44, 0.94), rgba(12, 36, 26, 0.96));
       backdrop-filter: blur(20px);
-      border: 1px solid var(--primary-cyan);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      color: #fff;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      box-shadow: 0 10px 30px rgba(4, 20, 14, 0.5);
+      color: #f0fdf4;
       padding: 12px 18px;
       border-radius: 12px;
       font-size: 13px;
@@ -1540,7 +1497,7 @@ function showNotification(msg) {
     `;
     document.body.appendChild(toast);
   }
-  toast.innerHTML = `<i class="fa-solid fa-bell text-cyan"></i> ${msg}`;
+  toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald"></i> ${msg}`;
   toast.style.opacity = '1';
   toast.style.transform = 'translateY(0)';
   setTimeout(() => {
