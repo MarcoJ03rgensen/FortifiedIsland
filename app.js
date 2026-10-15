@@ -23,7 +23,6 @@ const state = {
   searchQuery: '',
   tableQuery: '',
   showLabels: true,
-  showHeatmap: false,
   lastModifiedHeader: null,
   pollTimer: null
 };
@@ -175,32 +174,6 @@ function addMapDataLayers() {
     cluster: false
   });
 
-  // Heatmap Layer (toggleable)
-  map.addLayer({
-    id: 'sites-heatmap',
-    type: 'heatmap',
-    source: 'bornholm-sites',
-    maxzoom: 14,
-    layout: { visibility: 'none' },
-    paint: {
-      'heatmap-weight': [
-        'interpolate', ['linear'], ['get', 'totalGraves'],
-        0, 0.2,
-        20, 0.5,
-        100, 1.0
-      ],
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 1, 14, 3],
-      'heatmap-color': [
-        'interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(0, 0, 0, 0)',
-        0.2, 'rgba(56, 189, 248, 0.5)',
-        0.5, 'rgba(251, 191, 36, 0.7)',
-        0.8, 'rgba(239, 68, 68, 0.9)'
-      ],
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 15, 14, 35],
-      'heatmap-opacity': 0.75
-    }
-  });
 
   // Glowing Outer Ping Rings
   map.addLayer({
@@ -1259,14 +1232,6 @@ function initEventListeners() {
     }
   });
 
-  const btnHeatmap = document.getElementById('btnToggleHeatmap');
-  btnHeatmap.addEventListener('click', () => {
-    state.showHeatmap = !state.showHeatmap;
-    btnHeatmap.classList.toggle('active', state.showHeatmap);
-    if (map.getLayer('sites-heatmap')) {
-      map.setLayoutProperty('sites-heatmap', 'visibility', state.showHeatmap ? 'visible' : 'none');
-    }
-  });
 
   // Global Search Input
   const searchInput = document.getElementById('globalSearchInput');
