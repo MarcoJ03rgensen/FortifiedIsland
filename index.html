@@ -57,6 +57,10 @@
         <button id="btnToggleLabels" class="pill-btn active" title="Toggle place names on map">
           <i class="fa-solid fa-tag"></i> Labels
         </button>
+        <button id="btnToggleCurrent" class="pill-btn"
+          title="Experimental: annual mean circuit-theory current density (Tilia Alsie, 20 paddlers)">
+          <i class="fa-solid fa-flask"></i> Sea routes <span class="exp-tag">EXP</span>
+        </button>
       </div>
     </div>
 
@@ -504,6 +508,14 @@
     </div>
   </div>
 
+  <div id="cdLegend" class="cd-legend" hidden>
+    <strong>Annual mean current density</strong>
+    <small>Circuit theory · Tilia Alsie, 20 paddlers · experimental</small>
+    <div class="cd-bar"></div>
+    <div class="cd-scale"><span id="cdLegendMin"></span><span id="cdLegendMax"></span></div>
+    <label>Opacity <input type="range" id="cdOpacity" min="10" max="100" value="75"></label>
+  </div>
+
   <!-- Detailed Field Export Page -->
   <section id="fieldExportPage" class="fe-page" hidden>
     <div class="fe-head">
@@ -534,6 +546,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
+  <script src="visuals-layer.js?v=1"></script>
   <script src="metadata.js?v=1"></script>
   <script src="app.js?v=20261016a"></script>
   <script src="field-export.js?v=3"></script>

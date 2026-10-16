@@ -2004,3 +2004,13 @@ input:checked + .slider:before {
 .fe-field { display: flex; gap: 6px; align-items: flex-start; padding: 2px 0; font-size: .8rem; cursor: pointer; }
 .fe-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
 .fe-foot span { margin-right: auto; opacity: .8; font-size: .85rem; }
+
+/* Experimental current density layer */
+.exp-tag { font-size: .6rem; padding: 1px 4px; border-radius: 4px; background: #f59e0b; color: #111; margin-left: 4px; }
+.cd-legend { position: fixed; right: 16px; bottom: 56px; z-index: 800; width: 230px; padding: 10px 12px; border-radius: 10px; background: rgba(15,20,25,.88); color: #e8eaed; border: 1px solid rgba(255,255,255,.15); font-size: .78rem; display: flex; flex-direction: column; gap: 4px; }
+.cd-legend[hidden] { display: none; }
+.cd-legend small { opacity: .65; }
+.cd-bar { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #0d0887, #7e03a8, #cc4778, #f89540, #f0f921); }
+.cd-scale { display: flex; justify-content: space-between; opacity: .8; }
+.cd-legend label { display: flex; gap: 6px; align-items: center; }
+.cd-legend input { flex: 1; }
