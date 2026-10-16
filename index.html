@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bornholm Graves Explorer</title>
-  <meta name="description" content="Interactive map of Iron Age and Early Medieval burial sites on Bornholm. Filter by period, grave type and parish, and download the data.">
+  <meta name="description"
+    content="Interactive map of Iron Age and Early Medieval burial sites on Bornholm. Filter by period, grave type and parish, and download the data.">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="fortisgraves.png">
@@ -13,7 +15,9 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -24,6 +28,7 @@
   <!-- Custom Styles -->
   <link rel="stylesheet" href="index.css?v=20261015g">
 </head>
+
 <body>
   <!-- Top Navigation & Glass Header -->
   <header class="glass-header">
@@ -32,8 +37,8 @@
         <img src="fortisgraves.png" alt="Fortis Graves logo" class="brand-logo-img">
       </div>
       <div class="brand-info">
-        <h1 class="brand-title">BORNHOLM GRAVES EXPLORER</h1>
-        <p class="brand-subtitle">Iron Age &amp; Early Medieval Burial Sites · Bornholm, Denmark</p>
+        <h1 class="brand-title">FORTIS CEMETERIES EXPLORER</h1>
+        <p class="brand-subtitle">Iron Age &amp; Viking Age Burial Sites · Bornholm, Denmark</p>
       </div>
     </div>
 
@@ -58,7 +63,8 @@
     <!-- Header Actions -->
     <div class="header-right">
       <div class="dropdown" id="exportDropdownContainer">
-        <button class="glass-btn btn-primary export-trigger-btn" id="btnExportMenu" title="Export matching sites in various GIS and data formats">
+        <button class="glass-btn btn-primary export-trigger-btn" id="btnExportMenu"
+          title="Export matching sites in various GIS and data formats">
           <i class="fa-solid fa-cloud-arrow-down export-icon"></i>
           <span class="export-btn-label">Export</span>
           <span class="export-count-pill" id="exportCountBadge">0 sites</span>
@@ -135,7 +141,9 @@
           <div class="dropdown-divider"></div>
 
           <div class="dropdown-section-title">EXTERNAL WEB GIS</div>
-          <a href="https://web.geolibre.app/?data=https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson" target="_blank" rel="noopener noreferrer" id="btnOpenGeoLibreMenu" class="dropdown-card-item geolibre-item" title="Open and auto-load dataset in GeoLibre Web GIS (web.geolibre.app)">
+          <a href="https://web.geolibre.app/?data=https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson"
+            target="_blank" rel="noopener noreferrer" id="btnOpenGeoLibreMenu" class="dropdown-card-item geolibre-item"
+            title="Open and auto-load dataset in GeoLibre Web GIS (web.geolibre.app)">
             <div class="dropdown-card-icon geolibre-badge"><i class="fa-solid fa-earth-europe"></i></div>
             <div class="dropdown-card-details">
               <div class="dropdown-card-title">
@@ -164,8 +172,10 @@
       <div class="sidebar-header">
         <div class="search-bar-wrapper">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="globalSearchInput" placeholder="Search sites, parishes, finds, museum no." autocomplete="off">
-          <button class="clear-search-btn" id="btnClearSearch" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+          <input type="text" id="globalSearchInput" placeholder="Search sites, parishes, finds, museum no."
+            autocomplete="off">
+          <button class="clear-search-btn" id="btnClearSearch" style="display:none;"><i
+              class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
 
@@ -285,7 +295,8 @@
               </label>
             </div>
             <div class="toggle-row">
-              <span class="toggle-label"><i class="fa-solid fa-monument text-emerald"></i> Sites with mounds or standing stones</span>
+              <span class="toggle-label"><i class="fa-solid fa-monument text-emerald"></i> Sites with mounds or standing
+                stones</span>
               <label class="switch">
                 <input type="checkbox" id="filterMonumentsOnly">
                 <span class="slider round"></span>
@@ -321,7 +332,8 @@
           </div>
           <p class="section-desc">Exports the sites matching your current filters.</p>
           <div class="download-action-grid">
-            <button class="download-card-btn highlight-shp" id="sidebarDownloadSHP" title="Shapefile (.shp, .shx, .dbf, .prj) in a .zip">
+            <button class="download-card-btn highlight-shp" id="sidebarDownloadSHP"
+              title="Shapefile (.shp, .shx, .dbf, .prj) in a .zip">
               <div class="download-card-icon"><i class="fa-solid fa-file-zipper"></i></div>
               <div class="download-card-text">
                 <div class="download-card-title">Shapefile</div>
@@ -355,7 +367,8 @@
         <!-- RESULTS LIST -->
         <div class="filter-section results-section">
           <div class="section-title-row">
-            <span class="section-title"><i class="fa-solid fa-list-check"></i> SITES (<span id="resultsListCount">0</span>)</span>
+            <span class="section-title"><i class="fa-solid fa-list-check"></i> SITES (<span
+                id="resultsListCount">0</span>)</span>
             <button class="btn-link" id="btnFitMapToBounds" title="Zoom to show all listed sites">Zoom to all</button>
           </div>
           <div class="sites-mini-list" id="sitesMiniList">
@@ -435,9 +448,12 @@
       </div>
       <div class="table-controls">
         <input type="text" id="tableQuickFilter" placeholder="Filter rows…" class="glass-input-sm">
-        <button class="glass-btn btn-sm btn-primary-glass" id="btnExportTableSHP" title="Download as shapefile (.zip)"><i class="fa-solid fa-file-zipper"></i> Shapefile</button>
-        <button class="glass-btn btn-sm" id="btnExportTableCSV" title="Download as CSV"><i class="fa-solid fa-download"></i> CSV</button>
-        <button class="glass-btn btn-sm btn-close" id="btnCloseTable" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        <button class="glass-btn btn-sm btn-primary-glass" id="btnExportTableSHP"
+          title="Download as shapefile (.zip)"><i class="fa-solid fa-file-zipper"></i> Shapefile</button>
+        <button class="glass-btn btn-sm" id="btnExportTableCSV" title="Download as CSV"><i
+            class="fa-solid fa-download"></i> CSV</button>
+        <button class="glass-btn btn-sm btn-close" id="btnCloseTable" title="Close"><i
+            class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
     <div class="table-scroll-wrapper">
@@ -460,10 +476,14 @@
         <p>The map shows the sites in <strong>bornholm_graves_master.csv</strong>, compiled from:</p>
         <ul>
           <li><strong>Fund og Fortidsminder</strong> (Slots- og Kulturstyrelsen) – national site register.</li>
-          <li><strong>Lutz, L. H. (2010)</strong>: <em>Die Insel in der Mitte: Bornholm im 2.–4. Jahrhundert</em> – 39 catalogue sites and 23 additional sites.</li>
-          <li><strong>Jørgensen, L. (1985)</strong>: <em>Gravpladser og samfundsforhold på Bornholm i perioden 175–975 e.Kr.</em> – 18 additional sites.</li>
-          <li><strong>Foss, P. (1989)</strong>: <em>Baunegård – grave fra yngre romersk og ældre germansk jernalder</em>.</li>
-          <li><strong>Nielsen, F. O. (2026)</strong>: <em>Oversigt over gravpladser fra ældre jernalder på Bornholm</em> (Bornholms Museum, unpublished).</li>
+          <li><strong>Lutz, L. H. (2010)</strong>: <em>Die Insel in der Mitte: Bornholm im 2.–4. Jahrhundert</em> – 39
+            catalogue sites and 23 additional sites.</li>
+          <li><strong>Jørgensen, L. (1985)</strong>: <em>Gravpladser og samfundsforhold på Bornholm i perioden 175–975
+              e.Kr.</em> – 18 additional sites.</li>
+          <li><strong>Foss, P. (1989)</strong>: <em>Baunegård – grave fra yngre romersk og ældre germansk
+              jernalder</em>.</li>
+          <li><strong>Nielsen, F. O. (2026)</strong>: <em>Oversigt over gravpladser fra ældre jernalder på Bornholm</em>
+            (Bornholms Museum, unpublished).</li>
         </ul>
         <h4>Live updates</h4>
         <p>Changes saved to <code>bornholm_graves_master.csv</code> show up on the map automatically.</p>
@@ -472,8 +492,10 @@
           <li><strong>Pre-Roman Iron Age</strong> – Førromersk jernalder (c. 500 BC – AD 1)</li>
           <li><strong>Early Roman Iron Age</strong> – Ældre romersk jernalder (c. AD 1 – 160)</li>
           <li><strong>Late Roman Iron Age</strong> – Yngre romersk jernalder (c. AD 160 – 375/400)</li>
-          <li><strong>Migration Period</strong> – Folkevandringstid / ældre germansk jernalder (c. AD 375/400 – 550)</li>
-          <li><strong>Late Germanic &amp; Viking Age</strong> – Merovingertid, vendeltid og vikingetid (c. AD 550 – 1050)</li>
+          <li><strong>Migration Period</strong> – Folkevandringstid / ældre germansk jernalder (c. AD 375/400 – 550)
+          </li>
+          <li><strong>Late Germanic &amp; Viking Age</strong> – Merovingertid, vendeltid og vikingetid (c. AD 550 –
+            1050)</li>
         </ul>
       </div>
     </div>
@@ -485,4 +507,5 @@
   <script src="shpwrite.js"></script>
   <script src="app.js?v=20261015g"></script>
 </body>
+
 </html>
