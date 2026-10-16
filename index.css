@@ -1988,3 +1988,19 @@ input:checked + .slider:before {
 .map-floating-legend.collapsed .btn-close-tiny i {
   transform: rotate(180deg);
 }
+
+/* Detailed field export page */
+.fe-page { position: fixed; inset: var(--header-height, 64px) 0 0 0; z-index: 900; display: flex; flex-direction: column; background: #0f1419; color: #e8eaed; padding: 16px 20px; gap: 12px; }
+.fe-page[hidden] { display: none; }
+.fe-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.fe-head h2 { margin: 0; font-size: 1.2rem; }
+.fe-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fe-controls select, .fe-controls input { background: rgba(255,255,255,.08); color: inherit; border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 5px 8px; }
+.fe-body { flex: 1; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-content: start; }
+.fe-group { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; }
+.fe-group h3 { margin: 0 0 6px; font-size: .9rem; display: flex; justify-content: space-between; align-items: center; }
+.fe-group h3 label { cursor: pointer; display: flex; gap: 6px; align-items: center; }
+.fe-group h3 span { font-weight: 400; opacity: .6; font-size: .75rem; }
+.fe-field { display: flex; gap: 6px; align-items: flex-start; padding: 2px 0; font-size: .8rem; cursor: pointer; }
+.fe-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.fe-foot span { margin-right: auto; opacity: .8; font-size: .85rem; }

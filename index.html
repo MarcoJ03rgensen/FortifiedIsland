@@ -156,6 +156,9 @@
         </div>
       </div>
 
+      <button class="glass-btn" id="btnFieldExportView" title="Switch to detailed field export page">
+        <i class="fa-solid fa-list-check"></i> <span>Field Export</span>
+      </button>
       <button class="glass-btn" id="btnToggleTable" title="Show table">
         <i class="fa-solid fa-table-list"></i>
       </button>
@@ -501,11 +504,39 @@
     </div>
   </div>
 
+  <!-- Detailed Field Export Page -->
+  <section id="fieldExportPage" class="fe-page" hidden>
+    <div class="fe-head">
+      <h2>Detailed Field Export</h2>
+      <div class="fe-controls">
+        <label>Rows:
+          <select id="feScope">
+            <option value="filtered">Current map filters</option>
+            <option value="all">All sites</option>
+          </select>
+        </label>
+        <input type="text" id="feSearch" placeholder="Search categories…">
+        <button class="glass-btn btn-sm" id="feAll">Select all</button>
+        <button class="glass-btn btn-sm" id="feNone">Clear</button>
+        <button class="glass-btn btn-sm" id="feBack"><i class="fa-solid fa-map"></i> Back to map</button>
+      </div>
+    </div>
+    <div class="fe-body" id="feGroups"></div>
+    <div class="fe-foot">
+      <span id="feSummary"></span>
+      <button class="glass-btn btn-sm btn-primary-glass" id="feCSV"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+      <button class="glass-btn btn-sm btn-primary-glass" id="feSHP"><i class="fa-solid fa-layer-group"></i> Export SHP</button>
+      <button class="glass-btn btn-sm btn-primary-glass" id="feJSON"><i class="fa-solid fa-file-code"></i> Export JSON</button>
+    </div>
+  </section>
+
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
-  <script src="app.js?v=20261015g"></script>
+  <script src="metadata.js?v=1"></script>
+  <script src="app.js?v=20261016a"></script>
+  <script src="field-export.js?v=3"></script>
 </body>
 
 </html>

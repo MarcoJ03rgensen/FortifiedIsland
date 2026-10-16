@@ -1029,6 +1029,15 @@ function closeSiteDossier() {
 // ==========================================================================
 // EXPORT EXTRACT CAPABILITIES
 // ==========================================================================
+const DERIVED_FIELDS = new Set(['urn_count', 'crem_count', 'inh_count', 'boat_count', 'chamber_count', 'cist_count']);
+function metaCtx(rows, format, names) {
+  const fields = Object.keys(rows[0] || {}).filter(k => !DERIVED_FIELDS.has(k));
+  const bits = [`era ${state.activeEra}`];
+  if (state.selectedParish !== 'ALL') bits.push(`parish ${state.selectedParish}`);
+  if (state.searchQuery) bits.push(`search "${state.searchQuery}"`);
+  return { rows, fields: names || fields, format, scope: 'current map filters (' + bits.join(', ') + ')' };
+}
+
 function exportData(format) {
   const dataToExport = state.filteredSites.length > 0 ? state.filteredSites : state.allSites;
   const timestamp = new Date().toISOString().slice(0, 10);
@@ -1036,10 +1045,10 @@ function exportData(format) {
 
   if (format === 'csv') {
     const csvStr = Papa.unparse(dataToExport);
-    downloadBlob(new Blob(["\ufeff" + csvStr], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
+    ExportMeta.download(new Blob(["\ufeff" + csvStr], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`, metaCtx(dataToExport, 'CSV'));
   } else if (format === 'json') {
     const jsonStr = JSON.stringify(dataToExport, null, 2);
-    downloadBlob(new Blob([jsonStr], { type: 'application/json;charset=utf-8;' }), `${filename}.json`);
+    ExportMeta.download(new Blob([jsonStr], { type: 'application/json;charset=utf-8;' }), `${filename}.json`, metaCtx(dataToExport, 'JSON'));
   } else if (format === 'geojson') {
     const geojson = {
       type: 'FeatureCollection',
@@ -1054,7 +1063,7 @@ function exportData(format) {
           properties: s
         }))
     };
-    downloadBlob(new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json;charset=utf-8;' }), `${filename}.geojson`);
+    ExportMeta.download(new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json;charset=utf-8;' }), `${filename}.geojson`, metaCtx(dataToExport, 'GeoJSON'));
   } else if (format === 'shp') {
     exportShapefile(dataToExport, filename);
   }
@@ -1124,7 +1133,7 @@ function exportShapefile(dataToExport, filename) {
         point: filename
       }
     }).then(blob => {
-      downloadBlob(blob, `${filename}.zip`);
+      ExportMeta.download(blob, `${filename}.zip`, metaCtx(validSites, 'Shapefile (point)', Object.keys(geojson.features[0].properties)));
       showNotification(`Shapefile downloaded (${validSites.length} sites)`);
     }).catch(err => {
       console.error('Error generating Shapefile zip:', err);
