@@ -685,7 +685,7 @@ function updateUI() {
   if (rustGISDesc) {
     rustGISDesc.textContent = hasRustGISApp
       ? (isFiltered ? `Opens selection (${count} sites) in RustGIS Desktop app` : 'Opens Bornholm dataset in RustGIS Desktop app')
-      : (isFiltered ? `Auto-load current selection (${count} sites) in web.rustgis.app` : 'Auto-load Bornholm master layer in web.rustgis.app');
+      : (isFiltered ? `Auto-load selection (${count} sites) in RustGIS with OpenFreeMap Liberty` : 'Auto-load Bornholm master layer in RustGIS with OpenFreeMap Liberty');
   }
 }
 
@@ -1245,9 +1245,10 @@ async function openInWebGIS(platform) {
       const data = await res.json();
       const filename = data.filename || 'bornholm_temp_export.geojson';
       const dataUrl = `${window.location.origin}/${filename}?t=${Date.now()}`;
+      const libertyStyle = 'https://tiles.openfreemap.org/styles/liberty';
       const targetUrl = platform === 'geolibre'
         ? `https://web.geolibre.app/?data=${encodeURIComponent(dataUrl)}`
-        : `https://web.rustgis.app/?data=${encodeURIComponent(dataUrl)}`;
+        : `https://web.rustgis.app/?data=${encodeURIComponent(dataUrl)}&style=${encodeURIComponent(libertyStyle)}`;
 
       if (newTab && !newTab.closed) {
         newTab.location.href = targetUrl;
@@ -1259,18 +1260,21 @@ async function openInWebGIS(platform) {
     throw new Error('API returned status ' + res.status);
   } catch (err) {
     console.warn('Backend GeoJSON export endpoint unavailable, falling back:', err);
+    const libertyStyle = 'https://tiles.openfreemap.org/styles/liberty';
     if (!isFiltered) {
       const masterUrl = 'https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson';
       const targetUrl = platform === 'geolibre'
         ? `https://web.geolibre.app/?data=${encodeURIComponent(masterUrl)}`
-        : `https://web.rustgis.app/?data=${encodeURIComponent(masterUrl)}`;
+        : `https://web.rustgis.app/?data=${encodeURIComponent(masterUrl)}&style=${encodeURIComponent(libertyStyle)}`;
       if (newTab && !newTab.closed) {
         newTab.location.href = targetUrl;
       } else {
         window.open(targetUrl, '_blank');
       }
     } else {
-      const targetUrl = platform === 'geolibre' ? 'https://web.geolibre.app/' : 'https://web.rustgis.app/';
+      const targetUrl = platform === 'geolibre'
+        ? 'https://web.geolibre.app/'
+        : `https://web.rustgis.app/?style=${encodeURIComponent(libertyStyle)}`;
       if (newTab && !newTab.closed) {
         newTab.location.href = targetUrl;
       }
