@@ -22,3 +22,5 @@ insel_in_der_mitte_academic_extract.json
 
 # Raw/backup assets and temporary folders
 fortisgraves_original.png
+bornholm_temp_export.geojson
+*.code-workspace

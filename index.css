@@ -352,6 +352,8 @@ body::before {
   right: 0;
   top: calc(100% + 10px);
   width: 370px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   background: rgba(8, 26, 19, 0.97) !important;
   backdrop-filter: blur(28px) !important;
   -webkit-backdrop-filter: blur(28px) !important;
@@ -468,9 +470,33 @@ body::before {
 }
 
 .dropdown-card-icon.geolibre-badge {
-  background: rgba(20, 184, 166, 0.22);
-  color: #2dd4bf;
+  background: rgba(20, 184, 166, 0.18);
   border: 1px solid rgba(20, 184, 166, 0.45);
+  padding: 4px;
+}
+
+.dropdown-card-icon.rustgis-badge {
+  background: rgba(228, 120, 61, 0.18);
+  border: 1px solid rgba(228, 120, 61, 0.45);
+  padding: 4px;
+}
+
+.dropdown-card-icon .webgis-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 4px;
+}
+
+.dropdown-card-item.geolibre-item:hover {
+  background: rgba(20, 184, 166, 0.18) !important;
+  border-color: rgba(45, 212, 191, 0.6) !important;
+}
+
+.dropdown-card-item.rustgis-item:hover {
+  background: rgba(228, 120, 61, 0.18) !important;
+  border-color: rgba(251, 146, 60, 0.6) !important;
 }
 
 .dropdown-card-details {
@@ -533,6 +559,22 @@ body::before {
   color: #2dd4bf;
   border-color: rgba(20, 184, 166, 0.5);
   font-size: 8.5px;
+}
+
+.file-ext-badge.ext-rustgis {
+  background: rgba(228, 120, 61, 0.25);
+  color: #fb923c;
+  border-color: rgba(228, 120, 61, 0.5);
+  font-size: 8.5px;
+}
+
+.file-ext-badge.ext-desktop {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.5);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .dropdown-card-desc {
@@ -2010,7 +2052,9 @@ input:checked + .slider:before {
 .cd-legend { position: fixed; right: 16px; bottom: 56px; z-index: 800; width: 230px; padding: 10px 12px; border-radius: 10px; background: rgba(15,20,25,.88); color: #e8eaed; border: 1px solid rgba(255,255,255,.15); font-size: .78rem; display: flex; flex-direction: column; gap: 4px; }
 .cd-legend[hidden] { display: none; }
 .cd-legend small { opacity: .65; }
-.cd-bar { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #0d0887, #7e03a8, #cc4778, #f89540, #f0f921); }
+.cd-bar { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #ffffcc, #fecc5c, #fd8d3c, #e31a1c, #800026); }
 .cd-scale { display: flex; justify-content: space-between; opacity: .8; }
 .cd-legend label { display: flex; gap: 6px; align-items: center; }
 .cd-legend input { flex: 1; }
+.cd-nodata { display: flex; align-items: center; gap: 6px; opacity: .85; }
+.cd-nodata i { width: 14px; height: 10px; border-radius: 2px; background: rgba(225,225,225,.55); border: 1px solid rgba(255,255,255,.5); }

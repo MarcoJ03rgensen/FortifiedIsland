@@ -2,7 +2,7 @@
 (() => {
   const SRC = 'visuals/annual_mean_current_density.asc';
   const ID = 'current-density';
-  const STOPS = [[0, [13, 8, 135]], [0.25, [126, 3, 168]], [0.5, [204, 71, 120]], [0.75, [248, 149, 64]], [1, [240, 249, 33]]];
+  const STOPS = [[0, [255, 255, 204]], [0.25, [254, 204, 92]], [0.5, [253, 141, 60]], [0.75, [227, 26, 28]], [1, [128, 0, 38]]];
   let loaded = false, loading = false, visible = false, opacity = 0.75;
 
   const color = t => {
@@ -57,10 +57,11 @@
       const row = Math.min(g.nrows - 1, Math.max(0, Math.floor((north - lat) / g.cellsize)));
       for (let x = 0; x < g.ncols; x++) {
         const v = g.vals[row * g.ncols + x];
-        if (v === g.nodata || v <= 0 || isNaN(v)) continue;
+        const o = (y * g.ncols + x) * 4;
+        if (v === g.nodata || v <= 0 || isNaN(v)) { img.data.set([225, 225, 225, 110], o); continue; }
         const t = Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
         const [r, gg, b] = color(t);
-        img.data.set([r, gg, b, Math.round(60 + 195 * Math.sqrt(t))], (y * g.ncols + x) * 4);
+        img.data.set([r, gg, b, 235], o);
       }
     }
     ctx.putImageData(img, 0, 0);
@@ -73,6 +74,7 @@
     showNotification('Loading current density layer…');
     try {
       const g = await parse();
+      if (!map.isStyleLoaded()) await new Promise(res => map.once('idle', res));
       const { cv, lo, hi } = toCanvas(g);
       const w = g.xllcorner, e = w + g.ncols * g.cellsize, s = g.yllcorner, n = s + g.nrows * g.cellsize;
       map.addSource(ID, { type: 'canvas', canvas: cv, animate: false, coordinates: [[w, n], [e, n], [e, s], [w, s]] });

@@ -24,7 +24,11 @@ const state = {
   tableQuery: '',
   showLabels: true,
   lastModifiedHeader: null,
-  pollTimer: null
+  pollTimer: null,
+  desktopApps: {
+    geolibre: { installed: false, name: 'GeoLibre Desktop' },
+    rustgis: { installed: false, name: 'RustGIS Desktop' }
+  }
 };
 
 // Parish Code mapping for Bornholm
@@ -90,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSubPhaseChips();
   initEventListeners();
   loadMasterData();
+  detectDesktopApps();
   startLiveSyncWatcher();
 });
 
@@ -362,7 +367,16 @@ async function loadMasterData() {
 function processParsedData(data) {
   state.allSites = data.map(r => ({
     ...r,
-    Total_graves: parseInt(r.Total_graves) || 0,
+    Total_graves: parseInt(r.Total_graves) || parseInt(r.Total_graves_min) || 0,
+    Total_graves_min: parseInt(r.Total_graves_min) || parseInt(r.Total_graves) || 0,
+    alt_stednavm: r.alt_stednavm || r.alt_stednavn || '',
+    alt_stednavn: r.alt_stednavn || r.alt_stednavm || '',
+    Notes: r.Notes || r.notes || '',
+    notes: r.notes || r.Notes || '',
+    source: r.source || r['Source(s)'] || '',
+    'Source(s)': r['Source(s)'] || r.source || '',
+    excavation_state: r.excavation_state || r.status || '',
+    status: r.status || r.excavation_state || '',
     urn_count: parseInt(r['Graves per type: Urn']) || 0,
     crem_count: parseInt(r['Graves per type: Cremation grave']) || 0,
     inh_count: parseInt(r['Graves per type: Inhumation']) || 0,
@@ -495,7 +509,10 @@ function siteMatchesEra(site, era) {
     const colMatch = (
       hasCount(site['Graves_urn_PRKZ']) ||
       hasCount(site['Graves_inhumation_PRKZ']) ||
-      hasCount(site['Graves_cremation_PRKZ'])
+      hasCount(site['Graves_cremation_PRKZ']) ||
+      hasCount(site['Graves_urn_pre-roman_iron_age']) ||
+      hasCount(site['Graves_inhumation_pre-roman_iron_age']) ||
+      hasCount(site['Graves_cremation_pre-roman_iron_age'])
     );
     const textMatch = /pre-roman|førromersk|prkz/i.test(notes);
     return yearMatch || colMatch || textMatch;
@@ -508,6 +525,9 @@ function siteMatchesEra(site, era) {
       hasCount(site['Graves_urn_ÄRKZ']) ||
       hasCount(site['Graves_inhumation_ÄRKZ']) ||
       hasCount(site['Graves_cremation_ÄRKZ']) ||
+      hasCount(site['Graves_urn_early_roman_iron_age']) ||
+      hasCount(site['Graves_inhumation_early_roman_iron_age']) ||
+      hasCount(site['Graves_cremation_early_roman_iron_age']) ||
       hasCount(site['Graves_urn_late_roman_iron_age B2/C1a']) ||
       hasCount(site['Graves_inhumation_late_roman_iron_age B2/C1a']) ||
       hasCount(site['Graves_cremation_late_roman_iron_age B2/C1a'])
@@ -521,6 +541,7 @@ function siteMatchesEra(site, era) {
     const yearMatch = (f !== null && t !== null && Math.max(f, 160) <= Math.min(t, 400));
     const jrkzKeys = [
       'Graves_urn_JRKZ', 'Graves_inhumation_JRKZ', 'Graves_cremation_JRKZ',
+      'Graves_urn_late_roman_iron_age', 'Graves_inhumation_late_roman_iron_age', 'Graves_cremation_late_roman_iron_age',
       'Graves_urn_late_roman_iron_age C1a', 'Graves_inhumation_late_roman_iron_age C1a', 'Graves_cremation_late_roman_iron_age C1a',
       'Graves_urn_late_roman_iron_age C1b', 'Graves_inhumation_late_roman_iron_age C1b', 'Graves_cremation_late_roman_iron_age C1b',
       'Graves_urn_late_roman_iron_age C1a/b', 'Graves_inhumation_late_roman_iron_age C1a/b', 'Graves_cremation_late_roman_iron_age C1a/b',
@@ -544,7 +565,10 @@ function siteMatchesEra(site, era) {
     const colMatch = (
       hasCount(site['Graves_urn_ÆGJ']) ||
       hasCount(site['Graves_inhumation_ÆGJ']) ||
-      hasCount(site['Graves_cremation_ÆGJ'])
+      hasCount(site['Graves_cremation_ÆGJ']) ||
+      hasCount(site['Graves_urn_early_germanic_iron_age']) ||
+      hasCount(site['Graves_inhumation_early_germanic_iron_age']) ||
+      hasCount(site['Graves_cremation_early_germanic_iron_age'])
     );
     const textMatch = /early germanic|ægj|egj|ældre germansk|folkevandringstid|migration period/i.test(notes);
     return yearMatch || colMatch || textMatch;
@@ -553,8 +577,16 @@ function siteMatchesEra(site, era) {
   if (era === 'YGJ') {
     // Late Germanic & Viking Age (~550 – 1050 AD)
     const yearMatch = (f !== null && t !== null && Math.max(f, 550) <= Math.min(t, 1066));
+    const ygjKeys = [
+      'Graves_urn_late_germanic_iron_age', 'Graves_inhumation_late_germanic_iron_age', 'Graves_cremation_late_germanic_iron_age',
+      'Graves_urn_late_germanic_iron_age Phase 1 A-B', 'Graves_inhumation_late_germanic_iron_age Phase 1 A-B', 'Graves_cremation_late_germanic_iron_age Phase 1 A-B',
+      'Graves_urn_late_germanic_iron_age Phase 1 C-D', 'Graves_inhumation_late_germanic_iron_age Phase 1 C-D', 'Graves_cremation_late_germanic_iron_age Phase 1 C-D',
+      'Graves_urn_late_germanic_iron_age Phase 2 A-C', 'Graves_inhumation_late_germanic_iron_age Phase 2 A-C', 'Graves_cremation_late_germanic_iron_age Phase 2 A-C',
+      'Graves_urn_viking_age', 'Graves_inhumation_viking_age', 'Graves_cremation_viking_age'
+    ];
+    const colMatch = ygjKeys.some(k => hasCount(site[k]));
     const textMatch = /late germanic|ygj|yngre germansk|viking|vendel|merovingertid/i.test(notes);
-    return yearMatch || textMatch;
+    return yearMatch || colMatch || textMatch;
   }
 
   return true;
@@ -614,6 +646,47 @@ function updateUI() {
 
   // Update Bottom Table if open
   renderTableData();
+
+  // Update External GIS Tools Badges & Descriptions
+  const geoLibreTitle = document.getElementById('titleGeoLibre');
+  const geoLibreBadge = document.getElementById('badgeGeoLibreCount');
+  const geoLibreDesc = document.getElementById('descGeoLibre');
+  const rustGISTitle = document.getElementById('titleRustGIS');
+  const rustGISBadge = document.getElementById('badgeRustGISCount');
+  const rustGISDesc = document.getElementById('descRustGIS');
+
+  const count = state.filteredSites.length;
+  const isFiltered = count > 0 && count < state.allSites.length;
+  const countStr = isFiltered ? `${count} SITES` : 'ALL SITES';
+
+  const hasGeoLibreApp = Boolean(state.desktopApps?.geolibre?.installed);
+  const hasRustGISApp = Boolean(state.desktopApps?.rustgis?.installed);
+
+  if (geoLibreTitle) {
+    geoLibreTitle.textContent = hasGeoLibreApp ? 'Open in GeoLibre Desktop' : 'Open in GeoLibre';
+  }
+  if (geoLibreBadge) {
+    geoLibreBadge.textContent = hasGeoLibreApp ? `${countStr} · DESKTOP ↗` : `${countStr} ↗`;
+    geoLibreBadge.className = hasGeoLibreApp ? 'file-ext-badge ext-desktop' : 'file-ext-badge ext-webgis';
+  }
+  if (geoLibreDesc) {
+    geoLibreDesc.textContent = hasGeoLibreApp
+      ? (isFiltered ? `Opens selection (${count} sites) in GeoLibre Desktop app` : 'Opens Bornholm dataset in GeoLibre Desktop app')
+      : (isFiltered ? `Auto-load current selection (${count} sites) in web.geolibre.app` : 'Auto-load Bornholm master layer in web.geolibre.app');
+  }
+
+  if (rustGISTitle) {
+    rustGISTitle.textContent = hasRustGISApp ? 'Open in RustGIS Desktop' : 'Open in RustGIS';
+  }
+  if (rustGISBadge) {
+    rustGISBadge.textContent = hasRustGISApp ? `${countStr} · DESKTOP ↗` : `${countStr} ↗`;
+    rustGISBadge.className = hasRustGISApp ? 'file-ext-badge ext-desktop' : 'file-ext-badge ext-rustgis';
+  }
+  if (rustGISDesc) {
+    rustGISDesc.textContent = hasRustGISApp
+      ? (isFiltered ? `Opens selection (${count} sites) in RustGIS Desktop app` : 'Opens Bornholm dataset in RustGIS Desktop app')
+      : (isFiltered ? `Auto-load current selection (${count} sites) in web.rustgis.app` : 'Auto-load Bornholm master layer in web.rustgis.app');
+  }
 }
 
 function updateEraCounts() {
@@ -863,16 +936,6 @@ function openSiteDossier(site) {
               <div class="dossier-dl-sub">Spreadsheet row for Excel &amp; data analysis</div>
             </div>
           </button>
-          <a href="https://web.geolibre.app/?data=https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson${site.wgs84_latitude && site.wgs84_longitude ? `&lat=${encodeURIComponent(site.wgs84_latitude)}&lon=${encodeURIComponent(site.wgs84_longitude)}&zoom=15` : ''}" target="_blank" rel="noopener noreferrer" class="dossier-dl-card-btn dl-btn-geolibre" id="btnSiteGeoLibre" title="Open and auto-load Bornholm dataset centered on ${escapeHtml(site.stednavn || 'site')} in GeoLibre">
-            <div class="dossier-dl-icon geolibre-icon"><i class="fa-solid fa-earth-europe"></i></div>
-            <div class="dossier-dl-text">
-              <div class="dossier-dl-head">
-                <span>Inspect in GeoLibre</span>
-                <span class="file-ext-badge ext-webgis">AUTO-LOAD ↗</span>
-              </div>
-              <div class="dossier-dl-sub">Auto-loads dataset directly onto map in web.geolibre.app</div>
-            </div>
-          </a>
         </div>
       </div>
     </div>
@@ -1009,12 +1072,6 @@ function openSiteDossier(site) {
       downloadBlob(new Blob(["\ufeff" + csvStr], { type: 'text/csv;charset=utf-8;' }), `bornholm_site_${site.systemnr || (site.stednavn || 'site').replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
     });
   }
-  const btnSiteGeoLibre = document.getElementById('btnSiteGeoLibre');
-  if (btnSiteGeoLibre) {
-    btnSiteGeoLibre.addEventListener('click', () => {
-      showNotification(`Auto-loading Bornholm Graves dataset into GeoLibre for ${site.stednavn || 'site'}...`);
-    });
-  }
 
   renderMiniList(); // Re-render to highlight active item
 }
@@ -1066,6 +1123,160 @@ function exportData(format) {
     ExportMeta.download(new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json;charset=utf-8;' }), `${filename}.geojson`, metaCtx(dataToExport, 'GeoJSON'));
   } else if (format === 'shp') {
     exportShapefile(dataToExport, filename);
+  }
+}
+
+async function detectDesktopApps() {
+  try {
+    const res = await fetch('/api/detect_desktop_apps');
+    if (res.ok) {
+      state.desktopApps = await res.json();
+      updateUI();
+    }
+  } catch (e) {
+    // Backend endpoint unavailable (e.g. static hosting)
+  }
+}
+
+async function openInWebGIS(platform) {
+  const dataToExport = state.filteredSites.length > 0 ? state.filteredSites : state.allSites;
+  const isFiltered = dataToExport.length < state.allSites.length;
+  const siteCount = dataToExport.length;
+  const hasDesktop = Boolean(state.desktopApps?.[platform]?.installed);
+  const appName = state.desktopApps?.[platform]?.name || (platform === 'geolibre' ? 'GeoLibre Desktop' : 'RustGIS Desktop');
+  const platformWebName = platform === 'geolibre' ? 'GeoLibre' : 'RustGIS';
+
+  // Build GeoJSON FeatureCollection
+  const geojson = {
+    type: 'FeatureCollection',
+    name: isFiltered ? `bornholm_graves_${state.activeEra.toLowerCase().replace(/[^a-z0-9]/g, '_')}_selection` : 'bornholm_graves_master',
+    features: dataToExport
+      .filter(s => s.wgs84_latitude && s.wgs84_longitude)
+      .map(s => ({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [parseFloat(s.wgs84_longitude), parseFloat(s.wgs84_latitude)]
+        },
+        properties: s
+      }))
+  };
+
+  // If the desktop app is installed, open that instead!
+  if (hasDesktop) {
+    showNotification(`Opening ${siteCount} sites in ${appName}...`);
+    try {
+      const res = await fetch('/api/open_desktop_app', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, geojson })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.opened) {
+          showNotification(`Launched ${appName} with ${siteCount} sites!`, 4000);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to launch desktop app, falling back to Web GIS:', e);
+    }
+  }
+
+  // Fallback or Web GIS: Open in a new browser tab
+  const newTab = window.open('about:blank', '_blank');
+  if (newTab) {
+    try {
+      newTab.document.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <title>Opening ${platformWebName}...</title>
+          <style>
+            body {
+              background: #0d121d;
+              color: #f1f5f9;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .spinner {
+              width: 38px;
+              height: 38px;
+              border: 3px solid rgba(255,255,255,0.12);
+              border-top-color: #38bdf8;
+              border-radius: 50%;
+              animation: spin 0.8s linear infinite;
+              margin-bottom: 16px;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            h2 { font-size: 17px; margin: 0 0 6px; font-weight: 600; color: #f8fafc; }
+            p { font-size: 13px; color: #94a3b8; margin: 0; }
+          </style>
+        </head>
+        <body>
+          <div class="spinner"></div>
+          <h2>Loading ${isFiltered ? 'selection' : 'dataset'} into ${platformWebName}...</h2>
+          <p>Exporting ${siteCount} sites with full archaeological attributes</p>
+        </body>
+        </html>
+      `);
+      newTab.document.close();
+    } catch (e) {
+      // Document manipulation may be ignored if restricted
+    }
+  }
+
+  showNotification(`Exporting ${siteCount} sites to ${platformWebName}...`);
+
+  try {
+    const res = await fetch('/api/save_geojson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geojson)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const filename = data.filename || 'bornholm_temp_export.geojson';
+      const dataUrl = `${window.location.origin}/${filename}?t=${Date.now()}`;
+      const targetUrl = platform === 'geolibre'
+        ? `https://web.geolibre.app/?data=${encodeURIComponent(dataUrl)}`
+        : `https://web.rustgis.app/?data=${encodeURIComponent(dataUrl)}`;
+
+      if (newTab && !newTab.closed) {
+        newTab.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, '_blank');
+      }
+      return;
+    }
+    throw new Error('API returned status ' + res.status);
+  } catch (err) {
+    console.warn('Backend GeoJSON export endpoint unavailable, falling back:', err);
+    if (!isFiltered) {
+      const masterUrl = 'https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson';
+      const targetUrl = platform === 'geolibre'
+        ? `https://web.geolibre.app/?data=${encodeURIComponent(masterUrl)}`
+        : `https://web.rustgis.app/?data=${encodeURIComponent(masterUrl)}`;
+      if (newTab && !newTab.closed) {
+        newTab.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, '_blank');
+      }
+    } else {
+      const targetUrl = platform === 'geolibre' ? 'https://web.geolibre.app/' : 'https://web.rustgis.app/';
+      if (newTab && !newTab.closed) {
+        newTab.location.href = targetUrl;
+      }
+      exportData('geojson');
+      showNotification(`Selection exported as GeoJSON. Drag and drop file into ${platformWebName} to view.`, 6000);
+    }
   }
 }
 
@@ -1372,8 +1583,16 @@ function initEventListeners() {
   });
   const btnOpenGeoLibreMenu = document.getElementById('btnOpenGeoLibreMenu');
   if (btnOpenGeoLibreMenu) {
-    btnOpenGeoLibreMenu.addEventListener('click', () => {
-      showNotification('Auto-loading Bornholm Graves master layer in GeoLibre...');
+    btnOpenGeoLibreMenu.addEventListener('click', (e) => {
+      e.preventDefault();
+      openInWebGIS('geolibre');
+    });
+  }
+  const btnOpenRustGISMenu = document.getElementById('btnOpenRustGISMenu');
+  if (btnOpenRustGISMenu) {
+    btnOpenRustGISMenu.addEventListener('click', (e) => {
+      e.preventDefault();
+      openInWebGIS('rustgis');
     });
   }
 

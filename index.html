@@ -144,17 +144,32 @@
 
           <div class="dropdown-divider"></div>
 
-          <div class="dropdown-section-title">EXTERNAL WEB GIS</div>
-          <a href="https://web.geolibre.app/?data=https://raw.githubusercontent.com/MarcoJ03rgensen/FortifiedIsland/main/bornholm_graves_master.geojson"
-            target="_blank" rel="noopener noreferrer" id="btnOpenGeoLibreMenu" class="dropdown-card-item geolibre-item"
-            title="Open and auto-load dataset in GeoLibre Web GIS (web.geolibre.app)">
-            <div class="dropdown-card-icon geolibre-badge"><i class="fa-solid fa-earth-europe"></i></div>
+          <div class="dropdown-section-title">EXTERNAL GIS TOOLS</div>
+          <a href="#" id="btnOpenGeoLibreMenu" class="dropdown-card-item geolibre-item"
+            title="Open and auto-load current selection in GeoLibre">
+            <div class="dropdown-card-icon geolibre-badge">
+              <img src="assets/geolibre-logo.png" alt="GeoLibre Logo" class="webgis-logo-img">
+            </div>
             <div class="dropdown-card-details">
               <div class="dropdown-card-title">
-                <span>Open in GeoLibre</span>
-                <span class="file-ext-badge ext-webgis">AUTO-LOAD ↗</span>
+                <span id="titleGeoLibre">Open in GeoLibre</span>
+                <span class="file-ext-badge ext-webgis" id="badgeGeoLibreCount">AUTO-LOAD ↗</span>
               </div>
-              <div class="dropdown-card-desc">Auto-loads Bornholm Graves master layer in web.geolibre.app</div>
+              <div class="dropdown-card-desc" id="descGeoLibre">Auto-loads Bornholm Graves selection in GeoLibre</div>
+            </div>
+          </a>
+
+          <a href="#" id="btnOpenRustGISMenu" class="dropdown-card-item rustgis-item"
+            title="Open and auto-load current selection in RustGIS">
+            <div class="dropdown-card-icon rustgis-badge">
+              <img src="assets/rustgis-logo.svg" alt="RustGIS Logo" class="webgis-logo-img">
+            </div>
+            <div class="dropdown-card-details">
+              <div class="dropdown-card-title">
+                <span id="titleRustGIS">Open in RustGIS</span>
+                <span class="file-ext-badge ext-rustgis" id="badgeRustGISCount">AUTO-LOAD ↗</span>
+              </div>
+              <div class="dropdown-card-desc" id="descRustGIS">Auto-loads Bornholm Graves selection in RustGIS</div>
             </div>
           </a>
         </div>
@@ -512,7 +527,8 @@
     <strong>Annual mean current density</strong>
     <small>Circuit theory · Tilia Alsie, 20 paddlers · experimental</small>
     <div class="cd-bar"></div>
-    <div class="cd-scale"><span id="cdLegendMin"></span><span id="cdLegendMax"></span></div>
+    <div class="cd-scale"><span>low <b id="cdLegendMin"></b></span><span><b id="cdLegendMax"></b> high</span></div>
+    <div class="cd-nodata"><i></i> No data (land / not modelled)</div>
     <label>Opacity <input type="range" id="cdOpacity" min="10" max="100" value="75"></label>
   </div>
 
@@ -546,9 +562,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
-  <script src="visuals-layer.js?v=1"></script>
+  <script src="visuals-layer.js?v=4"></script>
   <script src="metadata.js?v=1"></script>
-  <script src="app.js?v=20261016a"></script>
+  <script src="app.js?v=20261024_desktop"></script>
   <script src="field-export.js?v=3"></script>
 </body>
 

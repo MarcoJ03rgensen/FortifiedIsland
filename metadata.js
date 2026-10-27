@@ -18,7 +18,7 @@
     [/^utm32n/, 'Coordinate in UTM zone 32N (EPSG:25832)'],
     [/^wgs84/, 'Coordinate in WGS84 (EPSG:4326)'],
     [/^geometry/, 'Geometry as WKT'],
-    [/^Total_graves$/, 'Total number of graves at the site'],
+    [/^(Total_graves|Total_graves_min)$/, 'Minimum total number of graves at the site'],
     [/^Graves per type/, 'Number of graves of the given type'],
     [/^Graves_/, 'Number of graves by burial rite and sub-period (e.g. C1a, C2)'],
     [/^Monuments_yes/, 'Visible monuments recorded (yes/no)'],
