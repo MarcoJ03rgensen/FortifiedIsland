@@ -139,6 +139,11 @@ function initMap() {
         url: 'hillshade.webp',
         coordinates: hillshadeCoords
       },
+      'viridis-source': {
+        type: 'image',
+        url: 'hillshade-viridis.webp',
+        coordinates: hillshadeCoords
+      },
       'map-hd-source': {
         type: 'image',
         url: 'map-hd-kopi.jpg',
@@ -163,6 +168,13 @@ function initMap() {
         id: 'hillshade-layer',
         type: 'raster',
         source: 'hillshade-source',
+        paint: { 'raster-opacity': 1.0, 'raster-fade-duration': 0 },
+        layout: { visibility: 'none' }
+      },
+      {
+        id: 'viridis-layer',
+        type: 'raster',
+        source: 'viridis-source',
         paint: { 'raster-opacity': 1.0, 'raster-fade-duration': 0 },
         layout: { visibility: 'none' }
       },
@@ -1488,6 +1500,7 @@ function initEventListeners() {
   // Layer Toggles
   const btnSatellite = document.getElementById('btnLayerSatellite');
   const btnHillshade = document.getElementById('btnLayerHillshade');
+  const btnViridis = document.getElementById('btnLayerViridis');
   const btnMapHD = document.getElementById('btnLayerMapHD');
 
   function setMapLayer(layer) {
@@ -1497,10 +1510,14 @@ function initEventListeners() {
     state.activeMapLayer = layer;
     if (btnSatellite) btnSatellite.classList.toggle('active', layer === 'satellite');
     if (btnHillshade) btnHillshade.classList.toggle('active', layer === 'hillshade');
+    if (btnViridis) btnViridis.classList.toggle('active', layer === 'viridis');
     if (btnMapHD) btnMapHD.classList.toggle('active', layer === 'map-hd');
 
     if (map.getLayer('hillshade-layer')) {
       map.setLayoutProperty('hillshade-layer', 'visibility', layer === 'hillshade' ? 'visible' : 'none');
+    }
+    if (map.getLayer('viridis-layer')) {
+      map.setLayoutProperty('viridis-layer', 'visibility', layer === 'viridis' ? 'visible' : 'none');
     }
     if (map.getLayer('map-hd-layer')) {
       map.setLayoutProperty('map-hd-layer', 'visibility', layer === 'map-hd' ? 'visible' : 'none');
@@ -1509,6 +1526,7 @@ function initEventListeners() {
 
   if (btnSatellite) btnSatellite.addEventListener('click', () => setMapLayer('satellite'));
   if (btnHillshade) btnHillshade.addEventListener('click', () => setMapLayer('hillshade'));
+  if (btnViridis) btnViridis.addEventListener('click', () => setMapLayer('viridis'));
   if (btnMapHD) btnMapHD.addEventListener('click', () => setMapLayer('map-hd'));
 
   const btnLabels = document.getElementById('btnToggleLabels');
