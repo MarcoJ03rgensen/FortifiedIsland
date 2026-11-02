@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="index.css?v=20261015g">
+  <link rel="stylesheet" href="index.css?v=20261102a">
 </head>
 
 <body>
@@ -54,12 +54,17 @@
     <!-- Map Layer Controls -->
     <div class="header-center">
       <div class="glass-pill-toggle">
+        <button id="btnLayerSatellite" class="pill-btn active" title="Satellite imagery basemap">
+          <i class="fa-solid fa-satellite"></i> Satellite
+        </button>
+        <button id="btnLayerHillshade" class="pill-btn" title="High-resolution LiDAR hillshade layer (0.4m DEM)">
+          <i class="fa-solid fa-mountain-sun"></i> Hillshade
+        </button>
+        <button id="btnLayerMapHD" class="pill-btn" title="1805 historical map layer (map-hd-kopi.jpg)">
+          <i class="fa-solid fa-map"></i> 1805 Map
+        </button>
         <button id="btnToggleLabels" class="pill-btn active" title="Toggle place names on map">
           <i class="fa-solid fa-tag"></i> Labels
-        </button>
-        <button id="btnToggleCurrent" class="pill-btn"
-          title="Experimental: annual mean circuit-theory current density (Tilia Alsie, 20 paddlers)">
-          <i class="fa-solid fa-flask"></i> Sea routes <span class="exp-tag">EXP</span>
         </button>
       </div>
     </div>
@@ -523,15 +528,6 @@
     </div>
   </div>
 
-  <div id="cdLegend" class="cd-legend" hidden>
-    <strong>Annual mean current density</strong>
-    <small>Circuit theory · Tilia Alsie, 20 paddlers · experimental</small>
-    <div class="cd-bar"></div>
-    <div class="cd-scale"><span>low <b id="cdLegendMin"></b></span><span><b id="cdLegendMax"></b> high</span></div>
-    <div class="cd-nodata"><i></i> No data (land / not modelled)</div>
-    <label>Opacity <input type="range" id="cdOpacity" min="10" max="100" value="75"></label>
-  </div>
-
   <!-- Detailed Field Export Page -->
   <section id="fieldExportPage" class="fe-page" hidden>
     <div class="fe-head">
@@ -552,9 +548,12 @@
     <div class="fe-body" id="feGroups"></div>
     <div class="fe-foot">
       <span id="feSummary"></span>
-      <button class="glass-btn btn-sm btn-primary-glass" id="feCSV"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
-      <button class="glass-btn btn-sm btn-primary-glass" id="feSHP"><i class="fa-solid fa-layer-group"></i> Export SHP</button>
-      <button class="glass-btn btn-sm btn-primary-glass" id="feJSON"><i class="fa-solid fa-file-code"></i> Export JSON</button>
+      <button class="glass-btn btn-sm btn-primary-glass" id="feCSV"><i class="fa-solid fa-file-csv"></i> Export
+        CSV</button>
+      <button class="glass-btn btn-sm btn-primary-glass" id="feSHP"><i class="fa-solid fa-layer-group"></i> Export
+        SHP</button>
+      <button class="glass-btn btn-sm btn-primary-glass" id="feJSON"><i class="fa-solid fa-file-code"></i> Export
+        JSON</button>
     </div>
   </section>
 
@@ -562,9 +561,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
-  <script src="visuals-layer.js?v=4"></script>
   <script src="metadata.js?v=1"></script>
-  <script src="app.js?v=20261027_liberty"></script>
+  <script src="app.js?v=20261102b"></script>
   <script src="field-export.js?v=3"></script>
 </body>
 

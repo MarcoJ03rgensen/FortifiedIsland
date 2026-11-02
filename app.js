@@ -22,6 +22,7 @@ const state = {
   selectedParish: 'ALL',
   searchQuery: '',
   tableQuery: '',
+  activeMapLayer: 'satellite', // 'satellite', 'hillshade', 'map-hd'
   showLabels: true,
   lastModifiedHeader: null,
   pollTimer: null,
@@ -108,6 +109,20 @@ function initMap() {
     offset: 12
   });
 
+  const hillshadeCoords = [
+    [14.641174, 55.361384],
+    [15.220291, 55.361384],
+    [15.220291, 54.970052],
+    [14.641174, 54.970052]
+  ];
+
+  const mapHDCoords = [
+    [14.6225, 55.3510],
+    [15.2140, 55.3510],
+    [15.2190, 54.9515],
+    [14.6275, 54.9515]
+  ];
+
   const mapStyle = {
     version: 8,
     sources: {
@@ -118,6 +133,16 @@ function initMap() {
         ],
         tileSize: 256,
         attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics'
+      },
+      'hillshade-source': {
+        type: 'image',
+        url: 'hillshade.webp',
+        coordinates: hillshadeCoords
+      },
+      'map-hd-source': {
+        type: 'image',
+        url: 'map-hd-kopi.jpg',
+        coordinates: mapHDCoords
       },
       'esri-labels': {
         type: 'raster',
@@ -133,6 +158,20 @@ function initMap() {
         type: 'raster',
         source: 'esri-satellite',
         paint: { 'raster-opacity': 1.0 }
+      },
+      {
+        id: 'hillshade-layer',
+        type: 'raster',
+        source: 'hillshade-source',
+        paint: { 'raster-opacity': 1.0, 'raster-fade-duration': 0 },
+        layout: { visibility: 'none' }
+      },
+      {
+        id: 'map-hd-layer',
+        type: 'raster',
+        source: 'map-hd-source',
+        paint: { 'raster-opacity': 1.0, 'raster-fade-duration': 0 },
+        layout: { visibility: 'none' }
       },
       {
         id: 'esri-labels-layer',
@@ -1447,6 +1486,31 @@ function initEventListeners() {
   }
 
   // Layer Toggles
+  const btnSatellite = document.getElementById('btnLayerSatellite');
+  const btnHillshade = document.getElementById('btnLayerHillshade');
+  const btnMapHD = document.getElementById('btnLayerMapHD');
+
+  function setMapLayer(layer) {
+    if (layer !== 'satellite' && state.activeMapLayer === layer) {
+      layer = 'satellite';
+    }
+    state.activeMapLayer = layer;
+    if (btnSatellite) btnSatellite.classList.toggle('active', layer === 'satellite');
+    if (btnHillshade) btnHillshade.classList.toggle('active', layer === 'hillshade');
+    if (btnMapHD) btnMapHD.classList.toggle('active', layer === 'map-hd');
+
+    if (map.getLayer('hillshade-layer')) {
+      map.setLayoutProperty('hillshade-layer', 'visibility', layer === 'hillshade' ? 'visible' : 'none');
+    }
+    if (map.getLayer('map-hd-layer')) {
+      map.setLayoutProperty('map-hd-layer', 'visibility', layer === 'map-hd' ? 'visible' : 'none');
+    }
+  }
+
+  if (btnSatellite) btnSatellite.addEventListener('click', () => setMapLayer('satellite'));
+  if (btnHillshade) btnHillshade.addEventListener('click', () => setMapLayer('hillshade'));
+  if (btnMapHD) btnMapHD.addEventListener('click', () => setMapLayer('map-hd'));
+
   const btnLabels = document.getElementById('btnToggleLabels');
   btnLabels.addEventListener('click', () => {
     state.showLabels = !state.showLabels;
