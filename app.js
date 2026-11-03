@@ -380,30 +380,35 @@ async function loadMasterData() {
 
   try {
     // Add cache-busting timestamp to guarantee freshness from disk
-    const url = `bornholm_graves_master.csv?t=${Date.now()}`;
+    const url = `bornholm_graves_master.geojson?t=${Date.now()}`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch master CSV: ${response.statusText}`);
+      throw new Error(`Failed to fetch master GeoJSON: ${response.statusText}`);
     }
 
     // Save etag/last-modified for live sync checking
     state.lastModifiedHeader = response.headers.get('Last-Modified') || response.headers.get('ETag');
 
-    const csvText = await response.text();
-    Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        processParsedData(results.data);
-        if (syncText) syncText.textContent = `Live · ${results.data.length} sites`;
-      },
-      error: (err) => {
-        console.error('PapaParse error:', err);
-        if (syncText) syncText.textContent = 'Could not read CSV';
+    const geoData = await response.json();
+    const features = Array.isArray(geoData.features) ? geoData.features : [];
+    const records = features.map(f => {
+      const props = { ...(f.properties || {}) };
+      if (f.geometry && f.geometry.type === 'Point' && Array.isArray(f.geometry.coordinates)) {
+        const [lon, lat] = f.geometry.coordinates;
+        if (lon !== undefined && lon !== null && (!props.wgs84_longitude || props.wgs84_longitude === 'N/A')) {
+          props.wgs84_longitude = String(lon);
+        }
+        if (lat !== undefined && lat !== null && (!props.wgs84_latitude || props.wgs84_latitude === 'N/A')) {
+          props.wgs84_latitude = String(lat);
+        }
       }
+      return props;
     });
+
+    processParsedData(records);
+    if (syncText) syncText.textContent = `Live · ${records.length} sites`;
   } catch (error) {
-    console.warn('Network fetch error, attempting fallback to local json:', error);
+    console.warn('Network fetch error for GeoJSON, attempting fallback to local json/csv:', error);
     try {
       const jRes = await fetch(`bornholm_graves_master.json?t=${Date.now()}`);
       const jData = await jRes.json();
@@ -428,6 +433,7 @@ function processParsedData(data) {
     'Source(s)': r['Source(s)'] || r.source || '',
     excavation_state: r.excavation_state || r.status || '',
     status: r.status || r.excavation_state || '',
+    Analytical_potential: r.Analytical_potential || '',
     urn_count: parseInt(r['Graves per type: Urn']) || 0,
     crem_count: parseInt(r['Graves per type: Cremation grave']) || 0,
     inh_count: parseInt(r['Graves per type: Inhumation']) || 0,
@@ -442,16 +448,16 @@ function processParsedData(data) {
 
 function startLiveSyncWatcher() {
   if (state.pollTimer) clearInterval(state.pollTimer);
-  // Poll every 3.5 seconds to see if CSV on disk was changed
+  // Poll every 3.5 seconds to see if GeoJSON on disk was changed
   state.pollTimer = setInterval(async () => {
     try {
-      const res = await fetch(`bornholm_graves_master.csv?check=${Date.now()}`, { method: 'HEAD' });
+      const res = await fetch(`bornholm_graves_master.geojson?check=${Date.now()}`, { method: 'HEAD' });
       const curHeader = res.headers.get('Last-Modified') || res.headers.get('ETag');
       if (curHeader && state.lastModifiedHeader && curHeader !== state.lastModifiedHeader) {
-        console.log('Detected change in bornholm_graves_master.csv on disk! Live reloading...');
+        console.log('Detected change in bornholm_graves_master.geojson on disk! Live reloading...');
         state.lastModifiedHeader = curHeader;
         loadMasterData();
-        showNotification('Data updated from CSV');
+        showNotification('Data updated from GeoJSON');
       }
     } catch (e) {
       // Ignore network polling blips
@@ -678,6 +684,9 @@ function updateUI() {
 
   const resultsListCount = document.getElementById('resultsListCount');
   if (resultsListCount) resultsListCount.textContent = state.filteredSites.length;
+
+  const masterBadge = document.querySelector('#exportFullMasterCSV .ext-master');
+  if (masterBadge) masterBadge.textContent = `${state.allSites.length} SITES`;
 
   // Update Metric Summary Cards
   const totalGraves = state.filteredSites.reduce((sum, s) => sum + (parseInt(s.Total_graves) || 0), 0);
@@ -1137,7 +1146,7 @@ function closeSiteDossier() {
 // ==========================================================================
 // EXPORT EXTRACT CAPABILITIES
 // ==========================================================================
-const DERIVED_FIELDS = new Set(['urn_count', 'crem_count', 'inh_count', 'boat_count', 'chamber_count', 'cist_count']);
+const DERIVED_FIELDS = new Set(['urn_count', 'crem_count', 'inh_count', 'boat_count', 'chamber_count', 'cist_count', 'Total_graves', 'alt_stednavm', 'Notes', 'Source(s)', 'excavation_state', 'Analytical_potential']);
 function metaCtx(rows, format, names) {
   const fields = Object.keys(rows[0] || {}).filter(k => !DERIVED_FIELDS.has(k));
   const bits = [`era ${state.activeEra}`];
@@ -1161,7 +1170,11 @@ function exportData(format) {
     const geojson = {
       type: 'FeatureCollection',
       features: dataToExport
-        .filter(s => s.wgs84_latitude && s.wgs84_longitude)
+        .filter(s => {
+          const lat = parseFloat(s.wgs84_latitude);
+          const lon = parseFloat(s.wgs84_longitude);
+          return !isNaN(lat) && !isNaN(lon) && lat > 54.0 && lon > 14.0;
+        })
         .map(s => ({
           type: 'Feature',
           geometry: {
@@ -1202,7 +1215,11 @@ async function openInWebGIS(platform) {
     type: 'FeatureCollection',
     name: isFiltered ? `bornholm_graves_${state.activeEra.toLowerCase().replace(/[^a-z0-9]/g, '_')}_selection` : 'bornholm_graves_master',
     features: dataToExport
-      .filter(s => s.wgs84_latitude && s.wgs84_longitude)
+      .filter(s => {
+        const lat = parseFloat(s.wgs84_latitude);
+        const lon = parseFloat(s.wgs84_longitude);
+        return !isNaN(lat) && !isNaN(lon) && lat > 54.0 && lon > 14.0;
+      })
       .map(s => ({
         type: 'Feature',
         geometry: {

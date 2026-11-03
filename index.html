@@ -43,7 +43,7 @@
     </div>
 
     <!-- Live Sync Status Indicator -->
-    <div class="sync-indicator-pill" id="syncStatusPill" title="Reloads automatically when the CSV file changes">
+    <div class="sync-indicator-pill" id="syncStatusPill" title="Reloads automatically when the GeoJSON file changes">
       <span class="pulsing-dot"></span>
       <span id="syncText">Loading…</span>
       <button class="btn-icon-tiny" id="btnManualReload" title="Reload data">
@@ -109,7 +109,7 @@
                 <span>GeoJSON Layer</span>
                 <span class="file-ext-badge ext-geo">.GEOJSON</span>
               </div>
-              <div class="dropdown-card-desc">WGS84 point collection with all 28 attributes</div>
+              <div class="dropdown-card-desc">WGS84 point collection with all 96 attributes</div>
             </div>
           </a>
 
@@ -144,7 +144,7 @@
             <div class="dropdown-card-details">
               <div class="dropdown-card-title">
                 <span>Master Catalog (All Sites)</span>
-                <span class="file-ext-badge ext-master">384 SITES</span>
+                <span class="file-ext-badge ext-master">189 SITES</span>
               </div>
               <div class="dropdown-card-desc">Full unfiltered Bornholm archaeological database</div>
             </div>
@@ -503,7 +503,7 @@
       </div>
       <div class="modal-body">
         <h4>Sources</h4>
-        <p>The map shows the sites in <strong>bornholm_graves_master.csv</strong>, compiled from:</p>
+        <p>The map shows the sites in <strong>bornholm_graves_master.geojson</strong>, compiled from:</p>
         <ul>
           <li><strong>Fund og Fortidsminder</strong> (Slots- og Kulturstyrelsen) – national site register.</li>
           <li><strong>Lutz, L. H. (2010)</strong>: <em>Die Insel in der Mitte: Bornholm im 2.–4. Jahrhundert</em> – 39
@@ -516,7 +516,7 @@
             (Bornholms Museum, unpublished).</li>
         </ul>
         <h4>Live updates</h4>
-        <p>Changes saved to <code>bornholm_graves_master.csv</code> show up on the map automatically.</p>
+        <p>Changes saved to <code>bornholm_graves_master.geojson</code> show up on the map automatically.</p>
         <h4>Periods</h4>
         <ul>
           <li><strong>Pre-Roman Iron Age</strong> – Førromersk jernalder (c. 500 BC – AD 1)</li>
@@ -565,8 +565,8 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
   <script src="metadata.js?v=1"></script>
-  <script src="app.js?v=20261103a"></script>
-  <script src="field-export.js?v=3"></script>
+  <script src="app.js?v=20261103b"></script>
+  <script src="field-export.js?v=4"></script>
 </body>
 
 </html>

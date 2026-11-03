@@ -15,7 +15,7 @@
     ['Monuments', /^Monuments_/],
     ['Weapons', /^Weapons_/],
   ];
-  const DERIVED = /^(urn_count|crem_count|inh_count|boat_count|chamber_count|cist_count)$/;
+  const DERIVED = /^(urn_count|crem_count|inh_count|boat_count|chamber_count|cist_count|Total_graves|alt_stednavm|Notes|Source\(s\)|excavation_state|Analytical_potential)$/;
   const sel = new Set();
   let groups = [];
 
