@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="index.css?v=20261102a">
+  <link rel="stylesheet" href="index.css?v=20261113d">
 </head>
 
 <body>
@@ -113,6 +113,18 @@
             </div>
           </a>
 
+          <div class="dropdown-section-title">CARTOGRAPHIC</div>
+          <a href="#" id="exportStylizedMap" class="dropdown-card-item stylized-map-item">
+            <div class="dropdown-card-icon stylized-badge"><i class="fa-solid fa-palette"></i></div>
+            <div class="dropdown-card-details">
+              <div class="dropdown-card-title">
+                <span>Stylized Map</span>
+                <span class="file-ext-badge ext-png">.PNG</span>
+              </div>
+              <div class="dropdown-card-desc">Publication plate — pick a basemap, restyle points, export an image</div>
+            </div>
+          </a>
+
           <div class="dropdown-section-title">SPREADSHEET &amp; TABULAR</div>
           <a href="#" id="exportFilteredCSV" class="dropdown-card-item">
             <div class="dropdown-card-icon csv-badge"><i class="fa-solid fa-file-csv"></i></div>
@@ -164,20 +176,6 @@
                 <span class="file-ext-badge ext-webgis" id="badgeGeoLibreCount">AUTO-LOAD ↗</span>
               </div>
               <div class="dropdown-card-desc" id="descGeoLibre">Auto-loads Bornholm Graves selection in GeoLibre</div>
-            </div>
-          </a>
-
-          <a href="#" id="btnOpenRustGISMenu" class="dropdown-card-item rustgis-item"
-            title="Open and auto-load current selection in RustGIS (OpenFreeMap Liberty)">
-            <div class="dropdown-card-icon rustgis-badge">
-              <img src="assets/rustgis-logo.svg" alt="RustGIS Logo" class="webgis-logo-img">
-            </div>
-            <div class="dropdown-card-details">
-              <div class="dropdown-card-title">
-                <span id="titleRustGIS">Open in RustGIS</span>
-                <span class="file-ext-badge ext-rustgis" id="badgeRustGISCount">AUTO-LOAD ↗</span>
-              </div>
-              <div class="dropdown-card-desc" id="descRustGIS">Auto-loads Bornholm Graves with OpenFreeMap Liberty</div>
             </div>
           </a>
         </div>
@@ -560,13 +558,194 @@
     </div>
   </section>
 
+  <!-- Stylized Map Export Studio -->
+  <section id="stylizedMapPage" class="sm-page" hidden>
+    <div class="sm-head">
+      <div class="sm-head-copy">
+        <span class="sm-kicker"><i class="fa-solid fa-palette"></i> Cartographic export</span>
+        <h2>Stylized Map Studio</h2>
+      </div>
+      <div class="sm-head-actions">
+        <span id="smSummary" class="sm-summary">0 sites</span>
+        <button class="glass-btn btn-sm" id="smFit" title="Zoom to the included sites">
+          <i class="fa-solid fa-expand"></i> Fit sites
+        </button>
+        <button class="glass-btn btn-sm" id="smPrint" title="Open the print dialog (Save as PDF)">
+          <i class="fa-solid fa-print"></i> Print / PDF
+        </button>
+        <button class="glass-btn btn-sm btn-primary-glass" id="smExport">
+          <i class="fa-solid fa-image"></i> Export PNG
+        </button>
+        <button class="glass-btn btn-sm" id="smBack">
+          <i class="fa-solid fa-map"></i> Back to map
+        </button>
+      </div>
+    </div>
+
+    <div class="sm-workspace">
+      <aside class="sm-panel" id="smPanel">
+        <p class="sm-help">Pick a look, then drag the plate to compose. Click the title to rename it.</p>
+
+        <section class="sm-section">
+          <div class="sm-section-title">Looks</div>
+          <div class="sm-looks" id="smLooks"></div>
+        </section>
+
+        <details class="sm-section">
+          <summary class="sm-section-title">Map type</summary>
+          <div class="sm-basemaps" id="smBasemaps"></div>
+        </details>
+
+        <details class="sm-section" open>
+          <summary class="sm-section-title">Sites</summary>
+          <div class="sm-seg" id="smColorSeg" role="group" aria-label="Colour sites by">
+            <button type="button" data-color-mode="type">Features</button>
+            <button type="button" data-color-mode="period">Period</button>
+            <button type="button" data-color-mode="graves">Count</button>
+            <button type="button" data-color-mode="solid">One colour</button>
+          </div>
+          <select id="smColorMode" hidden>
+            <option value="type">Grave features</option>
+            <option value="period">Period</option>
+            <option value="graves">Grave count</option>
+            <option value="solid">Single color</option>
+          </select>
+          <div class="sm-color-row" id="smSolidColors">
+            <label class="sm-swatch-field">Fill <input type="color" id="smFill" value="#fbbf24"></label>
+          </div>
+          <div class="sm-color-row" id="smTypeColors">
+            <label class="sm-swatch-field">Weapons <input type="color" id="smColorWeapons" value="#38bdf8"></label>
+            <label class="sm-swatch-field">Monuments <input type="color" id="smColorMonuments" value="#34d399"></label>
+            <label class="sm-swatch-field">Other <input type="color" id="smColorOther" value="#fbbf24"></label>
+          </div>
+          <div class="sm-color-row">
+            <label class="sm-swatch-field">Stroke <input type="color" id="smStroke" value="#ffffff"></label>
+          </div>
+          <div class="sm-seg" id="smMarkerSeg" role="group" aria-label="Marker style">
+            <button type="button" data-marker="disc">Disc</button>
+            <button type="button" data-marker="ring">Ring</button>
+            <button type="button" data-marker="burst">Burst</button>
+          </div>
+          <label class="sm-field">
+            <span>Size <em id="smSizeVal">8</em></span>
+            <input type="range" id="smSize" min="4" max="22" value="8">
+          </label>
+          <label class="sm-field">
+            <span>Stroke width <em id="smStrokeWVal">2</em></span>
+            <input type="range" id="smStrokeW" min="0" max="5" step="0.5" value="2">
+          </label>
+          <div class="sm-checks">
+            <label class="sm-check"><input type="checkbox" id="smSizeByGraves" checked> Larger = more graves</label>
+            <label class="sm-check"><input type="checkbox" id="smGlow" checked> Soft glow</label>
+          </div>
+          <label class="sm-field">
+            <span>Labels</span>
+            <select id="smLabels">
+              <option value="off">Hidden</option>
+              <option value="name">Site name</option>
+              <option value="both">Name + graves</option>
+            </select>
+          </label>
+        </details>
+
+        <details class="sm-section">
+          <summary class="sm-section-title">Atmosphere</summary>
+          <div class="sm-checks">
+            <label class="sm-check"><input type="checkbox" id="smHeat"> Heat bloom</label>
+            <label class="sm-check"><input type="checkbox" id="smGraticule"> Lat/lon grid</label>
+            <label class="sm-check"><input type="checkbox" id="smVignette" checked> Vignette</label>
+            <label class="sm-check"><input type="checkbox" id="smGrain" checked> Paper grain</label>
+          </div>
+        </details>
+
+        <details class="sm-section">
+          <summary class="sm-section-title">Plate</summary>
+          <label class="sm-field">
+            <span>Format</span>
+            <select id="smAspect">
+              <option value="landscape">Landscape 16:10</option>
+              <option value="wide">Widescreen 16:9</option>
+              <option value="square">Square</option>
+              <option value="portrait">Portrait 3:4</option>
+            </select>
+          </label>
+          <label class="sm-field">
+            <span>Frame</span>
+            <select id="smFrame">
+              <option value="gold">Gold fillet</option>
+              <option value="double">Double rule</option>
+              <option value="slim">Slim line</option>
+              <option value="none">No frame</option>
+            </select>
+          </label>
+          <label class="sm-field">
+            <span>Export resolution</span>
+            <select id="smDpi">
+              <option value="150">150 DPI — slides</option>
+              <option value="300" selected>300 DPI — print</option>
+              <option value="450">450 DPI — poster</option>
+            </select>
+          </label>
+          <div class="sm-checks">
+            <label class="sm-check"><input type="checkbox" id="smShowTitle" checked> Title block</label>
+            <label class="sm-check"><input type="checkbox" id="smShowLegend" checked> Legend</label>
+            <label class="sm-check"><input type="checkbox" id="smShowNorth" checked> Compass</label>
+            <label class="sm-check"><input type="checkbox" id="smShowScale" checked> Scale bar</label>
+            <label class="sm-check"><input type="checkbox" id="smShowCredit" checked> Caption</label>
+          </div>
+        </details>
+
+        <details class="sm-section sm-section-sites">
+          <summary class="sm-section-title-row">
+            <span class="sm-section-title">Which sites</span>
+            <span class="sm-mini-actions">
+              <button type="button" class="sm-text-btn" id="smSitesAll">All</button>
+              <button type="button" class="sm-text-btn" id="smSitesNone">None</button>
+            </span>
+          </summary>
+          <p class="sm-help">Untick to hide. Click the colour chip to recast one site.</p>
+          <input type="search" id="smSiteSearch" placeholder="Filter sites…" autocomplete="off">
+          <div class="sm-site-list" id="smSiteList"></div>
+        </details>
+      </aside>
+
+      <div class="sm-stage" id="smStage">
+        <div class="sm-paper" id="smPaper" data-theme="night" data-aspect="landscape" data-frame="gold">
+          <div class="sm-map-wrap" id="smMap"></div>
+          <canvas class="sm-grid" id="smGrid"></canvas>
+          <div class="sm-vignette" id="smVignetteEl"></div>
+          <div class="sm-grain" id="smGrainEl"></div>
+          <div class="sm-titleblock" id="smTitleblock">
+            <input type="text" id="smTitle" class="sm-title-input" value="Burial Sites of Bornholm" maxlength="80">
+            <input type="text" id="smSubtitle" class="sm-subtitle-input" value="" maxlength="140">
+          </div>
+          <div class="sm-legend" id="smLegend"></div>
+          <div class="sm-north" id="smNorth" aria-hidden="true">
+            <svg viewBox="0 0 64 72" width="36" height="40">
+              <circle cx="32" cy="28" r="20" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.45"/>
+              <circle cx="32" cy="28" r="3" fill="currentColor"/>
+              <polygon points="32,6 36,28 32,24 28,28" fill="currentColor"/>
+              <polygon points="32,50 28,28 32,32 36,28" fill="currentColor" opacity="0.35"/>
+              <text x="32" y="70" text-anchor="middle" font-size="11" font-family="Cinzel, serif" font-weight="700">N</text>
+            </svg>
+          </div>
+          <div class="sm-scale" id="smScale"></div>
+          <div class="sm-credit" id="smCredit">Fortis Cemeteries Explorer · Bornholm</div>
+          <div class="sm-frame-edge" aria-hidden="true"></div>
+        </div>
+        <p class="sm-stage-hint">Drag to frame the island · click the title to edit</p>
+      </div>
+    </div>
+  </section>
+
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
   <script src="metadata.js?v=1"></script>
-  <script src="app.js?v=20261103b"></script>
-  <script src="field-export.js?v=4"></script>
+  <script src="app.js?v=20261113c"></script>
+  <script src="field-export.js?v=5"></script>
+  <script src="stylized-map-export.js?v=14"></script>
 </body>
 
 </html>

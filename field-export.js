@@ -111,7 +111,11 @@
 
   function show(on) {
     $('fieldExportPage').hidden = !on;
-    if (on) build();
+    if (on) {
+      const sm = $('stylizedMapPage');
+      if (sm) sm.hidden = true;
+      build();
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {

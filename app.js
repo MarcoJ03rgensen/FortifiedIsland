@@ -711,16 +711,12 @@ function updateUI() {
   const geoLibreTitle = document.getElementById('titleGeoLibre');
   const geoLibreBadge = document.getElementById('badgeGeoLibreCount');
   const geoLibreDesc = document.getElementById('descGeoLibre');
-  const rustGISTitle = document.getElementById('titleRustGIS');
-  const rustGISBadge = document.getElementById('badgeRustGISCount');
-  const rustGISDesc = document.getElementById('descRustGIS');
 
   const count = state.filteredSites.length;
   const isFiltered = count > 0 && count < state.allSites.length;
   const countStr = isFiltered ? `${count} SITES` : 'ALL SITES';
 
   const hasGeoLibreApp = Boolean(state.desktopApps?.geolibre?.installed);
-  const hasRustGISApp = Boolean(state.desktopApps?.rustgis?.installed);
 
   if (geoLibreTitle) {
     geoLibreTitle.textContent = hasGeoLibreApp ? 'Open in GeoLibre Desktop' : 'Open in GeoLibre';
@@ -733,19 +729,6 @@ function updateUI() {
     geoLibreDesc.textContent = hasGeoLibreApp
       ? (isFiltered ? `Opens selection (${count} sites) in GeoLibre Desktop app` : 'Opens Bornholm dataset in GeoLibre Desktop app')
       : (isFiltered ? `Auto-load current selection (${count} sites) in web.geolibre.app` : 'Auto-load Bornholm master layer in web.geolibre.app');
-  }
-
-  if (rustGISTitle) {
-    rustGISTitle.textContent = hasRustGISApp ? 'Open in RustGIS Desktop' : 'Open in RustGIS';
-  }
-  if (rustGISBadge) {
-    rustGISBadge.textContent = hasRustGISApp ? `${countStr} · DESKTOP ↗` : `${countStr} ↗`;
-    rustGISBadge.className = hasRustGISApp ? 'file-ext-badge ext-desktop' : 'file-ext-badge ext-rustgis';
-  }
-  if (rustGISDesc) {
-    rustGISDesc.textContent = hasRustGISApp
-      ? (isFiltered ? `Opens selection (${count} sites) in RustGIS Desktop app` : 'Opens Bornholm dataset in RustGIS Desktop app')
-      : (isFiltered ? `Auto-load selection (${count} sites) in RustGIS with OpenFreeMap Liberty` : 'Auto-load Bornholm master layer in RustGIS with OpenFreeMap Liberty');
   }
 }
 
@@ -1689,13 +1672,6 @@ function initEventListeners() {
     btnOpenGeoLibreMenu.addEventListener('click', (e) => {
       e.preventDefault();
       openInWebGIS('geolibre');
-    });
-  }
-  const btnOpenRustGISMenu = document.getElementById('btnOpenRustGISMenu');
-  if (btnOpenRustGISMenu) {
-    btnOpenRustGISMenu.addEventListener('click', (e) => {
-      e.preventDefault();
-      openInWebGIS('rustgis');
     });
   }
 
