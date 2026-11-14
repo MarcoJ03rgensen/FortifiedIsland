@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="index.css?v=20261113d">
+  <link rel="stylesheet" href="index.css?v=20261114b">
 </head>
 
 <body>
@@ -596,7 +596,7 @@
           <div class="sm-basemaps" id="smBasemaps"></div>
         </details>
 
-        <details class="sm-section" open>
+        <details class="sm-section">
           <summary class="sm-section-title">Sites</summary>
           <div class="sm-seg" id="smColorSeg" role="group" aria-label="Colour sites by">
             <button type="button" data-color-mode="type">Features</button>
@@ -620,6 +620,14 @@
           </div>
           <div class="sm-color-row">
             <label class="sm-swatch-field">Stroke <input type="color" id="smStroke" value="#ffffff"></label>
+          </div>
+          <div class="sm-color-row" id="smPeriodColors">
+            <label class="sm-swatch-field">Pre-Roman <input type="color" id="smEraPRKZ" value="#c4b5fd"></label>
+            <label class="sm-swatch-field">Early Roman <input type="color" id="smEraARKZ" value="#38bdf8"></label>
+            <label class="sm-swatch-field">Late Roman <input type="color" id="smEraJRKZ" value="#fbbf24"></label>
+            <label class="sm-swatch-field">Migration <input type="color" id="smEraAEGJ" value="#34d399"></label>
+            <label class="sm-swatch-field">Late Germanic <input type="color" id="smEraYGJ" value="#fb7185"></label>
+            <label class="sm-swatch-field">Undated <input type="color" id="smEraOTHER" value="#94a3b8"></label>
           </div>
           <div class="sm-seg" id="smMarkerSeg" role="group" aria-label="Marker style">
             <button type="button" data-marker="disc">Disc</button>
@@ -646,6 +654,39 @@
               <option value="both">Name + graves</option>
             </select>
           </label>
+        </details>
+
+        <details class="sm-section" open>
+          <summary class="sm-section-title">Type &amp; panels</summary>
+          <p class="sm-help">Ink for titles, captions, and the cards sitting on the map.</p>
+          <div class="sm-subhead">Text</div>
+          <div class="sm-color-row">
+            <label class="sm-swatch-field">Title <input type="color" id="smTitleColor" value="#f8fafc"></label>
+            <label class="sm-swatch-field">Caption <input type="color" id="smCaptionColor" value="#e2e8f0"></label>
+            <label class="sm-swatch-field">Halo <input type="color" id="smHaloColor" value="#000000"></label>
+          </div>
+          <label class="sm-field">
+            <span>Halo strength <em id="smHaloVal">40%</em></span>
+            <input type="range" id="smHalo" min="0" max="100" value="40">
+          </label>
+          <div class="sm-subhead">Cards behind text</div>
+          <div class="sm-color-row">
+            <label class="sm-swatch-field">Fill <input type="color" id="smPanelFill" value="#081410"></label>
+            <label class="sm-swatch-field">Edge <input type="color" id="smPanelEdge" value="#ffffff"></label>
+            <label class="sm-swatch-field">Frame <input type="color" id="smFrameColor" value="#fbbf24"></label>
+          </div>
+          <label class="sm-field">
+            <span>Title card <em id="smTitleBgVal">62%</em></span>
+            <input type="range" id="smTitleBgA" min="0" max="100" value="62">
+          </label>
+          <label class="sm-field">
+            <span>Legend card <em id="smLegendBgVal">72%</em></span>
+            <input type="range" id="smLegendBgA" min="0" max="100" value="72">
+          </label>
+          <div class="sm-checks">
+            <label class="sm-check"><input type="checkbox" id="smTitleCard" checked> Title sits on a card</label>
+          </div>
+          <button type="button" class="sm-text-btn" id="smInkReset">Reset colours to this look</button>
         </details>
 
         <details class="sm-section">
@@ -684,6 +725,7 @@
               <option value="150">150 DPI — slides</option>
               <option value="300" selected>300 DPI — print</option>
               <option value="450">450 DPI — poster</option>
+              <option value="900">900 DPI — archive</option>
             </select>
           </label>
           <div class="sm-checks">
@@ -745,7 +787,7 @@
   <script src="metadata.js?v=1"></script>
   <script src="app.js?v=20261113c"></script>
   <script src="field-export.js?v=5"></script>
-  <script src="stylized-map-export.js?v=14"></script>
+  <script src="stylized-map-export.js?v=16"></script>
 </body>
 
 </html>

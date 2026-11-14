@@ -105,7 +105,25 @@
     graticule: false,
     vignette: true,
     grain: true,
-    frame: 'gold'
+    frame: 'gold',
+    titleColor: '#f8fafc',
+    captionColor: '#e2e8f0',
+    haloColor: '#000000',
+    halo: 40,
+    panelFill: '#081410',
+    panelEdge: '#ffffff',
+    panelAlpha: 62,
+    legendAlpha: 72,
+    titleCard: true,
+    frameColor: '#fbbf24',
+    eraColors: {
+      PRKZ: '#c4b5fd',
+      ARKZ: '#38bdf8',
+      JRKZ: '#fbbf24',
+      AEGJ: '#34d399',
+      YGJ: '#fb7185',
+      OTHER: '#94a3b8'
+    }
   };
 
   const hidden = new Set();
@@ -140,7 +158,7 @@
     const override = colorOverride.get(siteId(site));
     if (override) return override;
     if (cfg.colorMode === 'solid') return cfg.fill;
-    if (cfg.colorMode === 'period') return ERA_COLORS[primaryEra(site)] || ERA_COLORS.OTHER;
+    if (cfg.colorMode === 'period') return cfg.eraColors[primaryEra(site)] || cfg.eraColors.OTHER;
     if (cfg.colorMode === 'graves') {
       const g = parseInt(site.Total_graves, 10) || 0;
       if (g >= 200) return '#9f1239';
@@ -286,11 +304,62 @@
   }
 
   function haloColor() {
-    return isLightTheme() ? '#f7ecd3' : '#0b1220';
+    return cfg.haloColor || (isLightTheme() ? '#f7ecd3' : '#0b1220');
   }
 
   function labelFill() {
-    return isLightTheme() ? '#2a2114' : '#f8fafc';
+    return cfg.captionColor || (isLightTheme() ? '#2a2114' : '#f8fafc');
+  }
+
+  function inkForLook(look) {
+    const palettes = {
+      notebook: {
+        titleColor: '#2a2114', captionColor: '#4a3b28', haloColor: '#fff8e6', halo: 35,
+        panelFill: '#f4ead3', panelEdge: '#5c4a2a', panelAlpha: 78, legendAlpha: 86,
+        titleCard: true, frameColor: '#5c4a2a'
+      },
+      gilt: {
+        titleColor: '#f3e6c4', captionColor: '#e8c872', haloColor: '#120e0a', halo: 55,
+        panelFill: '#120e0a', panelEdge: '#e8c872', panelAlpha: 64, legendAlpha: 72,
+        titleCard: true, frameColor: '#e8c872'
+      },
+      night: {
+        titleColor: '#f8fafc', captionColor: '#d1fae5', haloColor: '#000000', halo: 45,
+        panelFill: '#071018', panelEdge: '#38bdf8', panelAlpha: 70, legendAlpha: 74,
+        titleCard: true, frameColor: '#38bdf8'
+      },
+      lidar: {
+        titleColor: '#f8fafc', captionColor: '#e2e8f0', haloColor: '#000000', halo: 42,
+        panelFill: '#0b1220', panelEdge: '#ffffff', panelAlpha: 62, legendAlpha: 72,
+        titleCard: true, frameColor: '#fbbf24'
+      },
+      chart: {
+        titleColor: '#2a2114', captionColor: '#4a3b28', haloColor: '#f7ecd3', halo: 30,
+        panelFill: '#f4ead3', panelEdge: '#3f2f14', panelAlpha: 80, legendAlpha: 88,
+        titleCard: true, frameColor: '#3f2f14'
+      },
+      aerial: {
+        titleColor: '#ffffff', captionColor: '#e2e8f0', haloColor: '#000000', halo: 50,
+        panelFill: '#0b1220', panelEdge: '#ffffff', panelAlpha: 58, legendAlpha: 70,
+        titleCard: true, frameColor: '#fbbf24'
+      }
+    };
+    return palettes[look && look.id] || palettes.lidar;
+  }
+
+  function applyInk() {
+    const paper = $('smPaper');
+    if (!paper) return;
+    paper.style.setProperty('--sm-title', cfg.titleColor);
+    paper.style.setProperty('--sm-caption', cfg.captionColor);
+    paper.style.setProperty('--sm-halo', hexToRgba(cfg.haloColor, Math.max(0, cfg.halo) / 100));
+    paper.style.setProperty('--sm-title-panel', hexToRgba(cfg.panelFill, (cfg.titleCard ? cfg.panelAlpha : 0) / 100));
+    paper.style.setProperty('--sm-legend-panel', hexToRgba(cfg.panelFill, cfg.legendAlpha / 100));
+    paper.style.setProperty('--sm-panel-edge', hexToRgba(cfg.panelEdge, 0.28));
+    paper.style.setProperty('--sm-frame', cfg.frameColor);
+    paper.classList.toggle('is-title-card-off', !cfg.titleCard || cfg.panelAlpha < 2);
+    paper.classList.toggle('is-legend-card-off', cfg.legendAlpha < 2);
+    applyPointPaint();
   }
 
   function addSiteLayers(map) {
@@ -488,6 +557,8 @@
     $('smCredit').textContent = `Fortis Cemeteries Explorer · Bornholm · ${spec.credit}`;
     $('smTypeColors').style.display = cfg.colorMode === 'type' ? 'flex' : 'none';
     $('smSolidColors').style.display = cfg.colorMode === 'solid' ? 'flex' : 'none';
+    if ($('smPeriodColors')) $('smPeriodColors').style.display = cfg.colorMode === 'period' ? 'flex' : 'none';
+    applyInk();
     renderLegend();
     drawFx();
     if (previewMap) {
@@ -541,6 +612,23 @@
     if ($('smShowNorth')) $('smShowNorth').checked = cfg.showNorth;
     if ($('smShowScale')) $('smShowScale').checked = cfg.showScale;
     if ($('smShowCredit')) $('smShowCredit').checked = cfg.showCredit;
+    if ($('smTitleColor')) $('smTitleColor').value = cfg.titleColor;
+    if ($('smCaptionColor')) $('smCaptionColor').value = cfg.captionColor;
+    if ($('smHaloColor')) $('smHaloColor').value = cfg.haloColor;
+    if ($('smHalo')) $('smHalo').value = String(cfg.halo);
+    if ($('smHaloVal')) $('smHaloVal').textContent = `${cfg.halo}%`;
+    if ($('smPanelFill')) $('smPanelFill').value = cfg.panelFill;
+    if ($('smPanelEdge')) $('smPanelEdge').value = cfg.panelEdge;
+    if ($('smFrameColor')) $('smFrameColor').value = cfg.frameColor;
+    if ($('smTitleBgA')) $('smTitleBgA').value = String(cfg.panelAlpha);
+    if ($('smTitleBgVal')) $('smTitleBgVal').textContent = `${cfg.panelAlpha}%`;
+    if ($('smLegendBgA')) $('smLegendBgA').value = String(cfg.legendAlpha);
+    if ($('smLegendBgVal')) $('smLegendBgVal').textContent = `${cfg.legendAlpha}%`;
+    if ($('smTitleCard')) $('smTitleCard').checked = cfg.titleCard;
+    ERA_ORDER.concat(['OTHER']).forEach((era) => {
+      const el = $(`smEra${era}`);
+      if (el) el.value = cfg.eraColors[era];
+    });
   }
 
   function applyLook(id, opts) {
@@ -558,6 +646,7 @@
     cfg.vignette = look.vignette;
     cfg.grain = look.grain;
     cfg.frame = look.frame;
+    Object.assign(cfg, inkForLook(look));
     syncForm();
     renderLooks();
     renderBasemaps();
@@ -605,7 +694,7 @@
       const present = new Set(sites.map(primaryEra));
       const items = ERA_ORDER.filter((e) => present.has(e)).concat(present.has('OTHER') ? ['OTHER'] : []);
       box.innerHTML = `<div class="sm-legend-title">Period</div>` + items.map((e) => `
-        <div class="sm-legend-item"><span class="sm-legend-dot${legendDotClass()}" style="background:${ERA_COLORS[e]};border-color:${cfg.marker === 'ring' ? ERA_COLORS[e] : cfg.stroke}"></span> ${ERA_LABELS[e]}</div>
+        <div class="sm-legend-item"><span class="sm-legend-dot${legendDotClass()}" style="background:${cfg.eraColors[e]};border-color:${cfg.marker === 'ring' ? cfg.eraColors[e] : cfg.stroke}"></span> ${ERA_LABELS[e]}</div>
       `).join('');
       return;
     }
@@ -726,8 +815,8 @@
     const step = gridStep(Math.max(east - west, north - south));
     const s = scale || 1;
     ctx.save();
-    ctx.strokeStyle = isLightTheme() ? 'rgba(42,33,20,0.28)' : 'rgba(255,255,255,0.22)';
-    ctx.fillStyle = isLightTheme() ? 'rgba(42,33,20,0.58)' : 'rgba(255,255,255,0.58)';
+    ctx.strokeStyle = hexToRgba(cfg.captionColor, 0.28);
+    ctx.fillStyle = hexToRgba(cfg.captionColor, 0.62);
     ctx.lineWidth = Math.max(1, s);
     ctx.font = `500 ${Math.max(9, 10 * s)}px Inter, sans-serif`;
     ctx.textBaseline = 'top';
@@ -1219,12 +1308,12 @@
 
   function drawFrame(ctx, w, h, sx, sy) {
     if (cfg.frame === 'none') return;
-    const color = getComputedStyle($('smPaper')).color || '#fbbf24';
+    const color = cfg.frameColor || getComputedStyle($('smPaper')).color || '#fbbf24';
     if (cfg.frame === 'gold') {
       ctx.strokeStyle = 'rgba(0,0,0,0.16)';
       ctx.lineWidth = 8 * sx;
       ctx.strokeRect(6 * sx, 6 * sy, w - 12 * sx, h - 12 * sy);
-      ctx.strokeStyle = 'rgba(251,191,36,0.78)';
+      ctx.strokeStyle = hexToRgba(color, 0.78);
       ctx.lineWidth = 1.6 * sx;
       ctx.strokeRect(10 * sx, 10 * sy, w - 20 * sx, h - 20 * sy);
       return;
@@ -1238,7 +1327,7 @@
       ctx.globalAlpha = 1;
       return;
     }
-    ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+    ctx.strokeStyle = hexToRgba(color, 0.4);
     ctx.lineWidth = 1 * sx;
     ctx.strokeRect(8 * sx, 8 * sy, w - 16 * sx, h - 16 * sy);
   }
@@ -1250,7 +1339,7 @@
     const paper = $('smPaper');
     const cssW = Math.max(1, paper.getBoundingClientRect().width);
     const cssH = Math.max(1, paper.getBoundingClientRect().height);
-    const ratio = Math.min(8, Math.max(2, dpi / 96));
+    const ratio = Math.min(12, Math.max(2, dpi / 96));
     const outW = Math.round(cssW * ratio);
     const outH = Math.round(cssH * ratio);
 
@@ -1279,24 +1368,48 @@
     ctx.imageSmoothingQuality = 'high';
     drawAtmosphere(ctx, out.width, out.height);
 
+    function paintPanel(box, alpha) {
+      if (alpha < 0.02) return;
+      ctx.fillStyle = hexToRgba(cfg.panelFill, alpha);
+      roundRect(ctx, box.x, box.y, box.w, box.h, 10 * sx);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(cfg.panelEdge, 0.28);
+      ctx.lineWidth = 1 * sx;
+      ctx.stroke();
+    }
+
+    function withHalo(draw) {
+      ctx.save();
+      if (cfg.halo > 0) {
+        ctx.shadowColor = hexToRgba(cfg.haloColor, Math.min(0.9, cfg.halo / 80));
+        ctx.shadowBlur = (cfg.halo / 100) * 8 * sx;
+      }
+      draw();
+      ctx.restore();
+    }
+
     if (cfg.showTitle) {
       const title = $('smTitle');
       const sub = $('smSubtitle');
+      const block = $('smTitleblock');
+      if (cfg.titleCard) paintPanel(boxOf(block, r, sx, sy), cfg.panelAlpha / 100);
       const tBox = boxOf(title, r, sx, sy);
       const sBox = boxOf(sub, r, sx, sy);
       const tCss = getComputedStyle(title);
       const sCss = getComputedStyle(sub);
-      fillTextBox(ctx, title.value, tBox, {
-        color: tCss.color,
-        fontWeight: tCss.fontWeight,
-        fontSize: parseFloat(tCss.fontSize) * sx,
-        fontFamily: tCss.fontFamily
-      });
-      fillTextBox(ctx, sub.value, sBox, {
-        color: sCss.color,
-        fontWeight: sCss.fontWeight,
-        fontSize: parseFloat(sCss.fontSize) * sx,
-        fontFamily: sCss.fontFamily
+      withHalo(() => {
+        fillTextBox(ctx, title.value, tBox, {
+          color: cfg.titleColor,
+          fontWeight: tCss.fontWeight,
+          fontSize: parseFloat(tCss.fontSize) * sx,
+          fontFamily: tCss.fontFamily
+        });
+        fillTextBox(ctx, sub.value, sBox, {
+          color: cfg.captionColor,
+          fontWeight: sCss.fontWeight,
+          fontSize: parseFloat(sCss.fontSize) * sx,
+          fontFamily: sCss.fontFamily
+        });
       });
     }
 
@@ -1304,19 +1417,14 @@
       const legend = $('smLegend');
       const b = boxOf(legend, r, sx, sy);
       const lcss = getComputedStyle(legend);
-      ctx.fillStyle = lcss.backgroundColor;
-      roundRect(ctx, b.x, b.y, b.w, b.h, 10 * sx);
-      ctx.fill();
-      ctx.strokeStyle = lcss.borderColor;
-      ctx.lineWidth = 1 * sx;
-      ctx.stroke();
-      ctx.fillStyle = lcss.color;
+      paintPanel(b, cfg.legendAlpha / 100);
+      ctx.fillStyle = cfg.captionColor;
       let y = b.y + 10 * sy;
       const x = b.x + 12 * sx;
       legend.querySelectorAll('.sm-legend-title, .sm-legend-item, .sm-legend-ramp, .sm-legend-ramp-labels').forEach((node) => {
         if (node.classList.contains('sm-legend-title')) {
           ctx.font = `700 ${10 * sx}px ${lcss.fontFamily}`;
-          ctx.fillStyle = lcss.color;
+          ctx.fillStyle = cfg.captionColor;
           ctx.globalAlpha = 0.7;
           ctx.fillText(node.textContent, x, y);
           ctx.globalAlpha = 1;
@@ -1337,7 +1445,7 @@
             ctx.lineWidth = 1.2 * sx;
             ctx.stroke();
           }
-          ctx.fillStyle = lcss.color;
+          ctx.fillStyle = cfg.captionColor;
           ctx.font = `500 ${11 * sx}px ${lcss.fontFamily}`;
           ctx.fillText(node.textContent.trim(), x + 16 * sx, y);
           y += 16 * sy;
@@ -1354,7 +1462,7 @@
           y += 16 * sy;
         } else if (node.classList.contains('sm-legend-ramp-labels')) {
           ctx.font = `400 ${10 * sx}px ${lcss.fontFamily}`;
-          ctx.fillStyle = lcss.color;
+          ctx.fillStyle = cfg.captionColor;
           ctx.globalAlpha = 0.75;
           ctx.fillText('Few', x, y);
           ctx.textAlign = 'right';
@@ -1367,7 +1475,7 @@
 
     if (cfg.showNorth) {
       const nb = boxOf($('smNorth'), r, sx, sy);
-      const color = getComputedStyle($('smNorth')).color;
+      const color = cfg.captionColor;
       const cx = nb.x + nb.w / 2;
       const cy = nb.y + nb.h * 0.38;
       const rad = Math.min(nb.w, nb.h) * 0.28;
@@ -1408,7 +1516,7 @@
       const sb = boxOf($('smScale'), r, sx, sy);
       const barPx = parseFloat($('smScale').dataset.px || '80') * sx;
       const label = $('smScale').innerText.trim();
-      ctx.strokeStyle = getComputedStyle($('smScale')).color;
+      ctx.strokeStyle = cfg.captionColor;
       ctx.lineWidth = 1.6 * sx;
       ctx.beginPath();
       ctx.moveTo(sb.x, sb.y);
@@ -1416,7 +1524,7 @@
       ctx.lineTo(sb.x + barPx, sb.y + 6 * sy);
       ctx.lineTo(sb.x + barPx, sb.y);
       ctx.stroke();
-      ctx.fillStyle = getComputedStyle($('smScale')).color;
+      ctx.fillStyle = cfg.captionColor;
       ctx.font = `500 ${11 * sx}px ${getComputedStyle($('smScale')).fontFamily}`;
       ctx.fillText(label, sb.x, sb.y + 18 * sy);
     }
@@ -1426,7 +1534,7 @@
       const ccss = getComputedStyle($('smCredit'));
       ctx.globalAlpha = 0.72;
       fillTextBox(ctx, $('smCredit').textContent, cb, {
-        color: ccss.color,
+        color: cfg.captionColor,
         fontWeight: ccss.fontWeight,
         fontSize: parseFloat(ccss.fontSize) * sx,
         fontFamily: ccss.fontFamily
@@ -1561,6 +1669,46 @@
     $('smFrame').addEventListener('change', (e) => {
       cfg.frame = e.target.value;
       applyTheme();
+    });
+    [['smTitleColor', 'titleColor'], ['smCaptionColor', 'captionColor'], ['smHaloColor', 'haloColor'], ['smPanelFill', 'panelFill'], ['smPanelEdge', 'panelEdge'], ['smFrameColor', 'frameColor']].forEach(([id, key]) => {
+      if (!$(id)) return;
+      $(id).addEventListener('input', (e) => {
+        cfg[key] = e.target.value;
+        applyInk();
+      });
+    });
+    $('smHalo').addEventListener('input', (e) => {
+      cfg.halo = Number(e.target.value);
+      $('smHaloVal').textContent = `${cfg.halo}%`;
+      applyInk();
+    });
+    $('smTitleBgA').addEventListener('input', (e) => {
+      cfg.panelAlpha = Number(e.target.value);
+      $('smTitleBgVal').textContent = `${cfg.panelAlpha}%`;
+      applyInk();
+    });
+    $('smLegendBgA').addEventListener('input', (e) => {
+      cfg.legendAlpha = Number(e.target.value);
+      $('smLegendBgVal').textContent = `${cfg.legendAlpha}%`;
+      applyInk();
+    });
+    $('smTitleCard').addEventListener('change', (e) => {
+      cfg.titleCard = e.target.checked;
+      applyInk();
+    });
+    $('smInkReset').addEventListener('click', () => {
+      const look = LOOKS.find((l) => l.id === cfg.look) || LOOKS.find((l) => l.id === 'lidar');
+      Object.assign(cfg, inkForLook(look));
+      syncForm();
+      applyInk();
+    });
+    ERA_ORDER.concat(['OTHER']).forEach((era) => {
+      const el = $(`smEra${era}`);
+      if (!el) return;
+      el.addEventListener('input', (e) => {
+        cfg.eraColors[era] = e.target.value;
+        refreshSitesUi();
+      });
     });
     $('smLabels').addEventListener('change', (e) => {
       cfg.labels = e.target.value;
