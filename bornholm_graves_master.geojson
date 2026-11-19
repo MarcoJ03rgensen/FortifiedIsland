@@ -16312,7 +16312,13 @@
     },
     {
       "type": "Feature",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.8222493,
+          55.21301676
+        ]
+      },
       "properties": {
         "systemnr": "122415",
         "stednr": "60104",
@@ -16323,8 +16329,8 @@
         "alt_stednavn": "St. Dammegaard",
         "utm32n_x_easting": "870241.9108",
         "utm32n_y_northing": "6133967.672",
-        "wgs84_latitude": "\n",
-        "wgs84_longitude": "\n",
+        "wgs84_latitude": "55.21301676",
+        "wgs84_longitude": "14.82224930",
         "stednavnsb": "Skibssætning",
         "anlnr": "1409",
         "fra_aar": "750",
@@ -16420,7 +16426,13 @@
     },
     {
       "type": "Feature",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.06219758,
+          55.13318424
+        ]
+      },
       "properties": {
         "systemnr": "167157",
         "stednr": "60406",
@@ -16431,8 +16443,8 @@
         "alt_stednavn": "Branderup Mark",
         "utm32n_x_easting": "886253.7739",
         "utm32n_y_northing": "6126403.7995",
-        "wgs84_latitude": "",
-        "wgs84_longitude": "",
+        "wgs84_latitude": "55.13318424",
+        "wgs84_longitude": "15.06219758",
         "stednavnsb": "",
         "anlnr": "",
         "fra_aar": "375",
@@ -16528,7 +16540,13 @@
     },
     {
       "type": "Feature",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.83072013,
+          55.16415315
+        ]
+      },
       "properties": {
         "systemnr": "122421",
         "stednr": "60104",
@@ -16539,8 +16557,8 @@
         "alt_stednavn": "Boesgaard /Rødkul",
         "utm32n_x_easting": "871235.0085",
         "utm32n_y_northing": "6128584.955",
-        "wgs84_latitude": "",
-        "wgs84_longitude": "",
+        "wgs84_latitude": "55.16415315",
+        "wgs84_longitude": "14.83072013",
         "stednavnsb": "",
         "anlnr": "",
         "fra_aar": "-500",
@@ -16636,7 +16654,13 @@
     },
     {
       "type": "Feature",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.01926095,
+          55.05846735
+        ]
+      },
       "properties": {
         "systemnr": "716",
         "stednr": "60201",
@@ -16647,8 +16671,8 @@
         "alt_stednavn": "",
         "utm32n_x_easting": "884239.2259",
         "utm32n_y_northing": "6117867.951",
-        "wgs84_latitude": "\n",
-        "wgs84_longitude": "\n",
+        "wgs84_latitude": "55.05846735",
+        "wgs84_longitude": "15.01926095",
         "stednavnsb": "\n",
         "anlnr": "\n",
         "fra_aar": "-500",
@@ -16744,7 +16768,13 @@
     },
     {
       "type": "Feature",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.94257259,
+          55.04006492
+        ]
+      },
       "properties": {
         "systemnr": "300",
         "stednr": "60205",
@@ -16755,8 +16785,8 @@
         "alt_stednavn": "Grammegaarde",
         "utm32n_x_easting": "879524.3486",
         "utm32n_y_northing": "6115404.034",
-        "wgs84_latitude": "\n",
-        "wgs84_longitude": "\n",
+        "wgs84_latitude": "55.04006492",
+        "wgs84_longitude": "14.94257259",
         "stednavnsb": "\n",
         "anlnr": "\n",
         "fra_aar": "1",
@@ -16852,7 +16882,13 @@
     },
     {
       "type": "Feature",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.00126424,
+          55.15649158
+        ]
+      },
       "properties": {
         "systemnr": "238755",
         "stednr": "60406",
@@ -16863,8 +16899,8 @@
         "alt_stednavn": "Store Frigård",
         "utm32n_x_easting": "882153.062",
         "utm32n_y_northing": "6128656.361",
-        "wgs84_latitude": "\n",
-        "wgs84_longitude": "\n",
+        "wgs84_latitude": "55.15649158",
+        "wgs84_longitude": "15.00126424",
         "stednavnsb": "\n",
         "anlnr": "\n",
         "fra_aar": "-500",
