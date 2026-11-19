@@ -712,23 +712,15 @@ function updateUI() {
   const geoLibreBadge = document.getElementById('badgeGeoLibreCount');
   const geoLibreDesc = document.getElementById('descGeoLibre');
 
-  const count = state.filteredSites.length;
-  const isFiltered = count > 0 && count < state.allSites.length;
-  const countStr = isFiltered ? `${count} SITES` : 'ALL SITES';
-
-  const hasGeoLibreApp = Boolean(state.desktopApps?.geolibre?.installed);
-
   if (geoLibreTitle) {
-    geoLibreTitle.textContent = hasGeoLibreApp ? 'Open in GeoLibre Desktop' : 'Open in GeoLibre';
+    geoLibreTitle.textContent = 'Open in GeoLibre';
   }
   if (geoLibreBadge) {
-    geoLibreBadge.textContent = hasGeoLibreApp ? `${countStr} · DESKTOP ↗` : `${countStr} ↗`;
-    geoLibreBadge.className = hasGeoLibreApp ? 'file-ext-badge ext-desktop' : 'file-ext-badge ext-webgis';
+    geoLibreBadge.textContent = 'FULL LAYER ↗';
+    geoLibreBadge.className = 'file-ext-badge ext-webgis';
   }
   if (geoLibreDesc) {
-    geoLibreDesc.textContent = hasGeoLibreApp
-      ? (isFiltered ? `Opens selection (${count} sites) in GeoLibre Desktop app` : 'Opens Bornholm dataset in GeoLibre Desktop app')
-      : (isFiltered ? `Auto-load current selection (${count} sites) in web.geolibre.app` : 'Auto-load Bornholm master layer in web.geolibre.app');
+    geoLibreDesc.textContent = 'Opens the published Bornholm layer in GeoLibre';
   }
 }
 
@@ -757,9 +749,7 @@ function renderMiniList() {
   }
 
   let html = '';
-  // Show up to 100 in mini-list for performance
-  const displaySites = state.filteredSites.slice(0, 80);
-  displaySites.forEach(site => {
+  state.filteredSites.forEach(site => {
     const isAct = state.selectedSite && (state.selectedSite.systemnr === site.systemnr && state.selectedSite.stednavn === site.stednavn);
     const wepIcon = site.Weapons_yes_or_no === 'Yes' ? '<i class="fa-solid fa-shield text-cyan" title="Weapons"></i>' : '';
     const monIcon = site.Monuments_yes_or_no === 'Yes' ? '<i class="fa-solid fa-monument text-emerald" title="Monument"></i>' : '';
@@ -775,10 +765,6 @@ function renderMiniList() {
       </div>
     `;
   });
-
-  if (state.filteredSites.length > 80) {
-    html += `<div style="text-align:center;font-size:11px;color:var(--text-dim);padding:6px;">+ ${state.filteredSites.length - 80} more – narrow your search or open the table</div>`;
-  }
 
   listContainer.innerHTML = html;
 
@@ -1185,11 +1171,37 @@ async function detectDesktopApps() {
   }
 }
 
+const PUBLISHED_GEOJSON = 'https://fortis.marcojorgensen.com/bornholm_graves_master.geojson';
+
+function geoLibreWebUrl() {
+  const host = location.hostname;
+  const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  const dataUrl = location.protocol === 'https:' && !local
+    ? `${location.origin}/bornholm_graves_master.geojson`
+    : PUBLISHED_GEOJSON;
+  return `https://web.geolibre.app/?data=${encodeURIComponent(dataUrl)}&welcome=0`;
+}
+
+function openGeoLibreWeb() {
+  const opened = window.open(geoLibreWebUrl(), '_blank', 'noopener');
+  if (!opened) {
+    showNotification('Allow pop-ups to open GeoLibre.');
+    return;
+  }
+  showNotification('Opening the Bornholm layer in GeoLibre…');
+}
+
 async function openInWebGIS(platform) {
+  if (platform === 'geolibre') {
+    openGeoLibreWeb();
+    return;
+  }
+
+  const hasDesktop = Boolean(state.desktopApps?.[platform]?.installed);
+
   const dataToExport = state.filteredSites.length > 0 ? state.filteredSites : state.allSites;
   const isFiltered = dataToExport.length < state.allSites.length;
   const siteCount = dataToExport.length;
-  const hasDesktop = Boolean(state.desktopApps?.[platform]?.installed);
   const appName = state.desktopApps?.[platform]?.name || (platform === 'geolibre' ? 'GeoLibre Desktop' : 'RustGIS Desktop');
   const platformWebName = platform === 'geolibre' ? 'GeoLibre' : 'RustGIS';
 
