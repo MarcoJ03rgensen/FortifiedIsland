@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="index.css?v=20261114b">
+  <link rel="stylesheet" href="index.css?v=20261121i">
 </head>
 
 <body>
@@ -68,6 +68,9 @@
         </button>
         <button id="btnToggleLabels" class="pill-btn active" title="Toggle place names on map">
           <i class="fa-solid fa-tag"></i> Labels
+        </button>
+        <button id="btnToggleBlackSoil" class="pill-btn active" title="Show or hide all five black soil sites">
+          <i class="fa-solid fa-star"></i> Black soil
         </button>
       </div>
     </div>
@@ -228,55 +231,6 @@
           </div>
         </div>
 
-        <!-- PERIOD FILTER -->
-        <div class="filter-section">
-          <div class="section-title-row">
-            <span class="section-title"><i class="fa-solid fa-timeline"></i> PERIOD</span>
-            <button class="btn-link" id="btnResetPeriods">Reset</button>
-          </div>
-
-          <!-- Main periods -->
-          <div class="aggregate-period-pills">
-            <button class="era-pill active" data-era="ALL">
-              <span class="era-name">All periods</span>
-              <span class="era-count" id="countEraAll">0</span>
-            </button>
-            <button class="era-pill" data-era="PRKZ" title="Førromersk jernalder">
-              <span class="era-name">Pre-Roman Iron Age<span class="era-date">c. 500 BC – AD 1</span></span>
-              <span class="era-count" id="countEraPRKZ">0</span>
-            </button>
-            <button class="era-pill" data-era="ARKZ" title="Ældre romersk jernalder">
-              <span class="era-name">Early Roman Iron Age<span class="era-date">c. AD 1 – 160</span></span>
-              <span class="era-count" id="countEraARKZ">0</span>
-            </button>
-            <button class="era-pill" data-era="JRKZ" title="Yngre romersk jernalder">
-              <span class="era-name">Late Roman Iron Age<span class="era-date">c. AD 160 – 375/400</span></span>
-              <span class="era-count" id="countEraJRKZ">0</span>
-            </button>
-            <button class="era-pill" data-era="AEGJ" title="Ældre germansk jernalder / Folkevandringstid">
-              <span class="era-name">Migration Period<span class="era-date">c. AD 375/400 – 550</span></span>
-              <span class="era-count" id="countEraAEGJ">0</span>
-            </button>
-            <button class="era-pill" data-era="YGJ" title="Yngre germansk jernalder og vikingetid">
-              <span class="era-name">Late Germanic &amp; Viking Age<span class="era-date">c. AD 550 – 1050</span></span>
-              <span class="era-count" id="countEraYGJ">0</span>
-            </button>
-          </div>
-
-          <!-- Sub-phases -->
-          <div class="sub-phases-container">
-            <div class="sub-phases-header" id="btnToggleSubPhases">
-              <span><i class="fa-solid fa-layer-group"></i> Late Roman sub-phases (B2–C3)</span>
-              <i class="fa-solid fa-chevron-down toggle-icon" id="subPhasesChevron"></i>
-            </div>
-            <div class="sub-phases-body" id="subPhasesBody">
-              <div class="phase-chips-grid" id="phaseChipsContainer">
-                <!-- Dynamically populated phase chips -->
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- GRAVE TYPES FILTER -->
         <div class="filter-section">
           <div class="section-title-row">
@@ -287,28 +241,40 @@
             <label class="grave-chip">
               <input type="checkbox" value="Urn" id="typeUrn" checked>
               <span class="chip-label"><i class="fa-solid fa-fire"></i> Urn</span>
+              <span class="grave-type-count" id="countTypeUrn">0</span>
             </label>
             <label class="grave-chip">
               <input type="checkbox" value="Cremation" id="typeCrem" checked>
               <span class="chip-label"><i class="fa-solid fa-smoking"></i> Cremation</span>
+              <span class="grave-type-count" id="countTypeCrem">0</span>
             </label>
             <label class="grave-chip">
               <input type="checkbox" value="Inhumation" id="typeInh" checked>
               <span class="chip-label"><i class="fa-solid fa-skull"></i> Inhumation</span>
+              <span class="grave-type-count" id="countTypeInh">0</span>
             </label>
             <label class="grave-chip">
               <input type="checkbox" value="Chamber" id="typeChamber" checked>
               <span class="chip-label"><i class="fa-solid fa-door-closed"></i> Chamber</span>
+              <span class="grave-type-count" id="countTypeChamber">0</span>
             </label>
             <label class="grave-chip">
               <input type="checkbox" value="Boat" id="typeBoat" checked>
               <span class="chip-label"><i class="fa-solid fa-sailboat"></i> Boat</span>
+              <span class="grave-type-count" id="countTypeBoat">0</span>
             </label>
             <label class="grave-chip">
               <input type="checkbox" value="Cist" id="typeCist" checked>
               <span class="chip-label"><i class="fa-solid fa-boxes-stacked"></i> Stone cist</span>
+              <span class="grave-type-count" id="countTypeCist">0</span>
+            </label>
+            <label class="grave-chip">
+              <input type="checkbox" value="Unspecified" id="typeUnspecified" checked>
+              <span class="chip-label"><i class="fa-solid fa-question"></i> Not specified</span>
+              <span class="grave-type-count" id="countTypeUnspecified">0</span>
             </label>
           </div>
+          <p class="grave-type-note">Each number is the graves recorded for that type. Untick a type to hide sites that include it.</p>
         </div>
 
         <!-- FEATURES -->
@@ -327,13 +293,6 @@
                 stones</span>
               <label class="switch">
                 <input type="checkbox" id="filterMonumentsOnly">
-                <span class="slider round"></span>
-              </label>
-            </div>
-            <div class="toggle-row">
-              <span class="toggle-label"><i class="fa-solid fa-star text-gold"></i> High research potential</span>
-              <label class="switch">
-                <input type="checkbox" id="filterHighPotentialOnly">
                 <span class="slider round"></span>
               </label>
             </div>
@@ -406,7 +365,49 @@
       </div>
     </aside>
 
-    <!-- Map -->
+    <!-- Map and the period timeline above it -->
+    <section class="map-stage">
+      <div class="period-timeline" aria-label="Filter by period">
+        <div class="period-timeline-main">
+          <div class="period-timeline-track">
+            <button class="era-pill active" data-era="PRKZ" style="--years: 501" title="Førromersk jernalder">
+              <span class="era-name">Pre-Roman Iron Age</span>
+              <span class="era-date">c. 500 BCE – 1 CE</span>
+              <span class="era-count" id="countEraPRKZ">0</span>
+            </button>
+            <button class="era-pill active" data-era="ARKZ" style="--years: 159" title="Ældre romersk jernalder">
+              <span class="era-name">Early Roman Iron Age</span>
+              <span class="era-date">c. 1–160 CE</span>
+              <span class="era-count" id="countEraARKZ">0</span>
+            </button>
+            <button class="era-pill active" data-era="JRKZ" style="--years: 215" title="Yngre romersk jernalder">
+              <span class="era-name">Late Roman Iron Age</span>
+              <span class="era-date">c. 160–375/400 CE</span>
+              <span class="era-count" id="countEraJRKZ">0</span>
+              <span class="era-subphase-toggle" id="btnLateRomanPhases" title="Late Roman sub-phases" role="button">
+                <i class="fa-solid fa-chevron-down"></i>
+              </span>
+            </button>
+            <button class="era-pill active" data-era="AEGJ" style="--years: 175" title="Ældre germansk jernalder / Folkevandringstid">
+              <span class="era-name">Migration Period</span>
+              <span class="era-date">c. 375/400–550 CE</span>
+              <span class="era-count" id="countEraAEGJ">0</span>
+            </button>
+            <button class="era-pill active" data-era="YGJ" style="--years: 500" title="Yngre germansk jernalder og vikingetid">
+              <span class="era-name">Late Germanic &amp; Viking Age</span>
+              <span class="era-date">c. 550–1050 CE</span>
+              <span class="era-count" id="countEraYGJ">0</span>
+            </button>
+          </div>
+        </div>
+        <div class="phase-dropdown" id="phaseDropdown" hidden>
+          <div class="phase-dropdown-head">
+            <span>Late Roman sub-phases</span>
+            <button type="button" class="btn-link" id="btnClearSubPhases">Clear</button>
+          </div>
+          <div class="phase-dropdown-list" id="phaseChipsContainer"></div>
+        </div>
+      </div>
     <section class="map-container" id="mapContainer">
       <div id="map"></div>
 
@@ -437,12 +438,17 @@
             <span>Other cemeteries</span>
           </div>
           <div class="legend-divider"></div>
+          <div class="legend-item" id="legendBlackSoil">
+            <span class="legend-star" aria-hidden="true">★</span>
+            <span>Black soil sites</span>
+          </div>
           <div class="legend-item">
             <span class="legend-size-demo"></span>
             <span class="legend-size-text">Larger dot = more graves</span>
           </div>
         </div>
       </div>
+    </section>
     </section>
 
     <!-- Right Drawer: Site details -->
@@ -517,13 +523,13 @@
         <p>Changes saved to <code>bornholm_graves_master.geojson</code> show up on the map automatically.</p>
         <h4>Periods</h4>
         <ul>
-          <li><strong>Pre-Roman Iron Age</strong> – Førromersk jernalder (c. 500 BC – AD 1)</li>
-          <li><strong>Early Roman Iron Age</strong> – Ældre romersk jernalder (c. AD 1 – 160)</li>
-          <li><strong>Late Roman Iron Age</strong> – Yngre romersk jernalder (c. AD 160 – 375/400)</li>
-          <li><strong>Migration Period</strong> – Folkevandringstid / ældre germansk jernalder (c. AD 375/400 – 550)
+          <li><strong>Pre-Roman Iron Age</strong> – Førromersk jernalder (c. 500 BCE – 1 CE)</li>
+          <li><strong>Early Roman Iron Age</strong> – Ældre romersk jernalder (c. 1–160 CE)</li>
+          <li><strong>Late Roman Iron Age</strong> – Yngre romersk jernalder (c. 160–375/400 CE)</li>
+          <li><strong>Migration Period</strong> – Folkevandringstid / ældre germansk jernalder (c. 375/400–550 CE)
           </li>
-          <li><strong>Late Germanic &amp; Viking Age</strong> – Merovingertid, vendeltid og vikingetid (c. AD 550 –
-            1050)</li>
+          <li><strong>Late Germanic &amp; Viking Age</strong> – Merovingertid, vendeltid og vikingetid (c. 550–1050
+            CE)</li>
         </ul>
       </div>
     </div>
@@ -614,7 +620,7 @@
             <label class="sm-swatch-field">Fill <input type="color" id="smFill" value="#fbbf24"></label>
           </div>
           <div class="sm-color-row" id="smTypeColors">
-            <label class="sm-swatch-field">Weapons <input type="color" id="smColorWeapons" value="#38bdf8"></label>
+            <label class="sm-swatch-field">Weapon Cemetery<input type="color" id="smColorWeapons" value="#38bdf8"></label>
             <label class="sm-swatch-field">Monuments <input type="color" id="smColorMonuments" value="#34d399"></label>
             <label class="sm-swatch-field">Other <input type="color" id="smColorOther" value="#fbbf24"></label>
           </div>
@@ -785,9 +791,9 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="shpwrite.js"></script>
   <script src="metadata.js?v=1"></script>
-  <script src="app.js?v=20261120a"></script>
+  <script src="app.js?v=20261121i"></script>
   <script src="field-export.js?v=5"></script>
-  <script src="stylized-map-export.js?v=16"></script>
+  <script src="stylized-map-export.js?v=17"></script>
 </body>
 
 </html>

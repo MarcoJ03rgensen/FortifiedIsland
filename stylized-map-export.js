@@ -188,7 +188,12 @@
 
   function defaultSubtitle() {
     const n = includedSites().length;
-    const era = state.activeEra === 'ALL' ? 'All periods' : (ERA_LABELS[state.activeEra] || state.activeEra);
+    const selected = state.selectedEras;
+    const era = !selected || selected.size === ERA_ORDER.length
+      ? 'All periods'
+      : selected.size === 0
+        ? 'No period'
+        : ERA_ORDER.filter((key) => selected.has(key)).map((key) => ERA_LABELS[key]).join(', ');
     const parish = state.selectedParish === 'ALL' ? 'Bornholm' : getParishName(state.selectedParish);
     return `${n} sites · ${era} · ${parish}`;
   }

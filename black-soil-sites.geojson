@@ -1,0 +1,106 @@
+{
+  "type": "FeatureCollection",
+  "name": "Black Soil Sites",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.117073,
+          55.126214
+        ]
+      },
+      "properties": {
+        "name": "Sorte Muld",
+        "systemnr": "1823",
+        "place": "Landskab, herunder vådområde",
+        "siteType": "Bosættelse, uspec undergruppe",
+        "period": "Jernalder",
+        "from": "1",
+        "to": "374",
+        "url": "http://www.kulturarv.dk/fundogfortidsminder/Lokalitet/1823/"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.870505,
+          55.087036
+        ]
+      },
+      "properties": {
+        "name": "Smørenge",
+        "systemnr": "167137",
+        "place": "Uspecificeret",
+        "siteType": "",
+        "period": "",
+        "from": "",
+        "to": "",
+        "url": "http://www.kulturarv.dk/fundogfortidsminder/Lokalitet/167137/"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.055193,
+          55.001986
+        ]
+      },
+      "properties": {
+        "name": "Sandegård",
+        "systemnr": "112393",
+        "place": "Ejendom, gård, hus",
+        "siteType": "Bosættelse, uspec undergruppe",
+        "period": "Jernalder",
+        "from": "-500",
+        "to": "1066",
+        "url": "http://www.kulturarv.dk/fundogfortidsminder/Lokalitet/112393/"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.759896,
+          55.169391
+        ]
+      },
+      "properties": {
+        "name": "Møllegård",
+        "systemnr": "167022",
+        "place": "Ejendom, gård, hus",
+        "siteType": "",
+        "period": "",
+        "from": "",
+        "to": "",
+        "url": "http://www.kulturarv.dk/fundogfortidsminder/Lokalitet/167022/"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.963004,
+          55.174147
+        ]
+      },
+      "properties": {
+        "name": "Agerbygård",
+        "systemnr": "131749",
+        "place": "Ejendom, gård, hus",
+        "siteType": "Bosættelse, uspec undergruppe",
+        "period": "Jernalder",
+        "from": "-500",
+        "to": "374",
+        "url": "http://www.kulturarv.dk/fundogfortidsminder/Lokalitet/131749/"
+      }
+    }
+  ]
+}

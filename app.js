@@ -13,17 +13,18 @@ const state = {
   allSites: [],
   filteredSites: [],
   selectedSite: null,
-  activeEra: 'ALL', // ALL, PRKZ, ARKZ, JRKZ, AEGJ, YGJ
+  activeEra: 'ALL', // ALL, one era, or a joined subset; kept for export labels
+  selectedEras: new Set(['PRKZ', 'ARKZ', 'JRKZ', 'AEGJ', 'YGJ']),
   selectedSubPhases: new Set(),
-  selectedGraveTypes: new Set(['Urn', 'Cremation', 'Inhumation', 'Chamber', 'Boat', 'Cist']),
+  selectedGraveTypes: new Set(['Urn', 'Cremation', 'Inhumation', 'Chamber', 'Boat', 'Cist', 'Unspecified']),
   weaponsOnly: false,
   monumentsOnly: false,
-  highPotentialOnly: false,
   selectedParish: 'ALL',
   searchQuery: '',
   tableQuery: '',
   activeMapLayer: 'satellite', // 'satellite', 'hillshade', 'map-hd'
   showLabels: true,
+  showBlackSoil: true,
   lastModifiedHeader: null,
   pollTimer: null,
   desktopApps: {
@@ -72,18 +73,18 @@ function escapeHtml(str) {
 
 // Sub-phase definitions
 const SUB_PHASE_KEYS = [
-  { key: 'B2/C1a', label: 'B2 / C1a (Transitional)' },
-  { key: 'C1a', label: 'Phase C1a' },
-  { key: 'C1b', label: 'Phase C1b' },
-  { key: 'C1a/b', label: 'Phase C1a/b' },
-  { key: 'C1b/C2a', label: 'Phase C1b/C2a' },
-  { key: 'C1', label: 'Phase C1 (Broad)' },
-  { key: 'C1-C2', label: 'Phase C1–C2' },
-  { key: 'C2a', label: 'Phase C2a' },
-  { key: 'C2b', label: 'Phase C2b' },
-  { key: 'C2', label: 'Phase C2 (Broad)' },
-  { key: 'C2/C3', label: 'Phase C2/C3' },
-  { key: 'C3', label: 'Phase C3' }
+  { key: 'B2/C1a', dates: 'c. 160–175 CE' },
+  { key: 'C1a', dates: '175–215 CE' },
+  { key: 'C1b', dates: '215–255 CE' },
+  { key: 'C1a/b', dates: 'c. 200–225 CE' },
+  { key: 'C1b/C2a', dates: 'c. 245–265 CE' },
+  { key: 'C1', dates: '175–255 CE' },
+  { key: 'C1-C2', dates: '175–310/320 CE' },
+  { key: 'C2a', dates: '255–275 CE' },
+  { key: 'C2b', dates: '275–310/320 CE' },
+  { key: 'C2', dates: '255–310/320 CE' },
+  { key: 'C2/C3', dates: 'c. 300–325/335 CE' },
+  { key: 'C3', dates: '310/320–350/375 CE' }
 ];
 
 let map;
@@ -97,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMasterData();
   detectDesktopApps();
   startLiveSyncWatcher();
+  fitPeriodNames();
 });
 
 // ==========================================================================
@@ -214,6 +216,12 @@ function initMap() {
   map.on('load', () => {
     addMapDataLayers();
     updateMapData();
+    map.resize();
+  });
+
+  window.addEventListener('resize', () => {
+    if (map) map.resize();
+    fitPeriodNames();
   });
 
   map.on('zoom', () => {
@@ -316,6 +324,108 @@ function addMapDataLayers() {
     map.getCanvas().style.cursor = '';
     hoverPopup.remove();
   });
+
+  addBlackSoilLayer();
+}
+
+function blackSoilStarImage() {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = 32;
+  const cy = 33;
+  const outer = 26;
+  const inner = 11;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = -Math.PI / 2 + i * Math.PI / 5;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#e11d48';
+  ctx.strokeStyle = '#3f0714';
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.fill();
+  ctx.stroke();
+  return ctx.getImageData(0, 0, size, size);
+}
+
+function blackSoilDate(props) {
+  const fromYear = String(props.from || '').trim();
+  const toYear = String(props.to || '').trim();
+  if (!fromYear && !toYear) return 'Date not recorded';
+  return `${fromYear || '?'} – ${toYear || '?'}`;
+}
+
+function addBlackSoilLayer() {
+  if (!map || map.getSource('black-soil')) return;
+  if (!map.hasImage('black-soil-star')) {
+    map.addImage('black-soil-star', blackSoilStarImage(), { pixelRatio: 2 });
+  }
+  map.addSource('black-soil', {
+    type: 'geojson',
+    data: 'black-soil-sites.geojson'
+  });
+  map.addLayer({
+    id: 'black-soil-stars',
+    type: 'symbol',
+    source: 'black-soil',
+    layout: {
+      'icon-image': 'black-soil-star',
+      'icon-size': 1.25,
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      visibility: state.showBlackSoil ? 'visible' : 'none'
+    }
+  });
+
+  const popup = new maplibregl.Popup({ closeButton: true, offset: 16 });
+  map.on('click', 'black-soil-stars', (e) => {
+    const feature = e.features && e.features[0];
+    if (!feature) return;
+    const props = feature.properties || {};
+    const kind = props.siteType ? `<div>${props.siteType}</div>` : '';
+    const link = props.url
+      ? `<div style="margin-top:6px;"><a href="${props.url}" target="_blank" rel="noopener noreferrer">Fund og Fortidsminder</a></div>`
+      : '';
+    popup.setLngLat(feature.geometry.coordinates.slice())
+      .setHTML(`
+        <div class="popup-site-title">${props.name || 'Black soil site'}</div>
+        <div class="popup-site-graves">${props.period || 'Black soil site'} · ${blackSoilDate(props)}</div>
+        ${kind}
+        ${link}
+      `)
+      .addTo(map);
+  });
+  map.on('mouseenter', 'black-soil-stars', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'black-soil-stars', () => {
+    map.getCanvas().style.cursor = '';
+  });
+  syncBlackSoilLegend();
+}
+
+function setBlackSoilVisible(on) {
+  state.showBlackSoil = on;
+  const button = document.getElementById('btnToggleBlackSoil');
+  if (button) button.classList.toggle('active', on);
+  if (map && map.getLayer('black-soil-stars')) {
+    map.setLayoutProperty('black-soil-stars', 'visibility', on ? 'visible' : 'none');
+  }
+  syncBlackSoilLegend();
+}
+
+function syncBlackSoilLegend() {
+  const item = document.getElementById('legendBlackSoil');
+  if (item) item.classList.toggle('is-off', !state.showBlackSoil);
 }
 
 function updateMapData() {
@@ -341,8 +451,7 @@ function updateMapData() {
           parishName: getParishName(site.stednr),
           totalGraves: parseInt(site.Total_graves) || 0,
           hasWeapons: site.Weapons_yes_or_no === 'Yes',
-          hasMonuments: site.Monuments_yes_or_no === 'Yes',
-          analyticalPotential: site.Analytical_potential
+          hasMonuments: site.Monuments_yes_or_no === 'Yes'
         }
       });
     }
@@ -420,6 +529,43 @@ async function loadMasterData() {
   }
 }
 
+function positiveCount(val) {
+  if (val === undefined || val === null) return 0;
+  const text = String(val).trim();
+  if (!text || text.toUpperCase() === 'N/A') return 0;
+  const n = parseInt(text, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// Period columns repeat the same graves in a phase column and in the period total.
+// Use the phase columns when they exist, otherwise the period total.
+function periodRiteCount(record, rite) {
+  const prefix = `Graves_${rite}_`;
+  let lateRomanPhases = 0;
+  let lateRomanTotal = 0;
+  let lateGermPhases = 0;
+  let lateGermTotal = 0;
+  let other = 0;
+  Object.keys(record).forEach(key => {
+    if (!key.startsWith(prefix)) return;
+    const n = positiveCount(record[key]);
+    if (!n) return;
+    const tail = key.slice(prefix.length);
+    if (tail === 'late_roman_iron_age') lateRomanTotal += n;
+    else if (tail.startsWith('late_roman_iron_age')) lateRomanPhases += n;
+    else if (tail === 'late_germanic_iron_age') lateGermTotal += n;
+    else if (tail.startsWith('late_germanic_iron_age')) lateGermPhases += n;
+    else other += n;
+  });
+  return (lateRomanPhases || lateRomanTotal) + (lateGermPhases || lateGermTotal) + other;
+}
+
+function riteCount(record, field, rite) {
+  const summary = positiveCount(record[field]);
+  if (summary > 0 || !rite) return summary;
+  return periodRiteCount(record, rite);
+}
+
 function processParsedData(data) {
   state.allSites = data.map(r => ({
     ...r,
@@ -434,12 +580,13 @@ function processParsedData(data) {
     excavation_state: r.excavation_state || r.status || '',
     status: r.status || r.excavation_state || '',
     Analytical_potential: r.Analytical_potential || '',
-    urn_count: parseInt(r['Graves per type: Urn']) || 0,
-    crem_count: parseInt(r['Graves per type: Cremation grave']) || 0,
-    inh_count: parseInt(r['Graves per type: Inhumation']) || 0,
-    boat_count: parseInt(r['Graves per type: Boat grave']) || 0,
-    chamber_count: parseInt(r['Graves per type: Chamber grave']) || 0,
-    cist_count: parseInt(r['Graves per type: Stone cist']) || 0
+    urn_count: riteCount(r, 'Graves per type: Urn', 'urn'),
+    crem_count: riteCount(r, 'Graves per type: Cremation grave', 'cremation'),
+    inh_count: riteCount(r, 'Graves per type: Inhumation', 'inhumation'),
+    boat_count: riteCount(r, 'Graves per type: Boat grave'),
+    chamber_count: riteCount(r, 'Graves per type: Chamber grave'),
+    cist_count: riteCount(r, 'Graves per type: Stone cist'),
+    unspecified_count: riteCount(r, 'Graves per type: Not specified')
   }));
 
   populateParishDropdown();
@@ -503,23 +650,23 @@ function applyFilters() {
     if (state.monumentsOnly && site.Monuments_yes_or_no !== 'Yes') {
       return false;
     }
-    if (state.highPotentialOnly && !site.Analytical_potential.toLowerCase().startsWith('high')) {
-      return false;
-    }
 
     // 4. Grave Types Filter
-    // If all 6 types are checked (default), do not exclude unclassified or general grave sites.
-    // If specific types are unchecked, restrict to sites containing the checked types.
-    if (state.selectedGraveTypes.size < 6) {
-      const matchesGraveType = (
-        (state.selectedGraveTypes.has('Urn') && site.urn_count > 0) ||
-        (state.selectedGraveTypes.has('Cremation') && site.crem_count > 0) ||
-        (state.selectedGraveTypes.has('Inhumation') && site.inh_count > 0) ||
-        (state.selectedGraveTypes.has('Chamber') && site.chamber_count > 0) ||
-        (state.selectedGraveTypes.has('Boat') && site.boat_count > 0) ||
-        (state.selectedGraveTypes.has('Cist') && site.cist_count > 0)
+    // Every type checked shows all sites. Unticking a type hides sites that have it.
+    if (state.selectedGraveTypes.size < 7) {
+      const graveTypes = [
+        ['Urn', site.urn_count],
+        ['Cremation', site.crem_count],
+        ['Inhumation', site.inh_count],
+        ['Chamber', site.chamber_count],
+        ['Boat', site.boat_count],
+        ['Cist', site.cist_count],
+        ['Unspecified', site.unspecified_count]
+      ];
+      const hasExcludedType = graveTypes.some(([key, count]) =>
+        !state.selectedGraveTypes.has(key) && count > 0
       );
-      if (!matchesGraveType) return false;
+      if (hasExcludedType) return false;
     }
 
     // 5. Smart Chronological Periods (Dateringer)
@@ -533,11 +680,9 @@ function applyFilters() {
         }
       }
       if (!matchesAnySubPhase) return false;
-    } else if (state.activeEra !== 'ALL') {
-      // Otherwise filter by active aggregate era
-      if (!siteMatchesEra(site, state.activeEra)) {
-        return false;
-      }
+    } else if (state.selectedEras.size < 5) {
+      const matchesEra = [...state.selectedEras].some(era => siteMatchesEra(site, era));
+      if (!matchesEra) return false;
     }
 
     return true;
@@ -561,7 +706,7 @@ function siteMatchesEra(site, era) {
   const notes = (site.Notes || '') + ' ' + (site.alt_stednavm || '');
 
   if (era === 'PRKZ') {
-    // Pre-Roman Iron Age (~500 BC – 1 AD)
+    // Pre-Roman Iron Age (~500 BCE – 1 CE)
     const yearMatch = (f !== null && t !== null && Math.max(f, -500) <= Math.min(t, 1));
     const colMatch = (
       hasCount(site['Graves_urn_PRKZ']) ||
@@ -576,7 +721,7 @@ function siteMatchesEra(site, era) {
   }
 
   if (era === 'ARKZ') {
-    // Early Roman Iron Age (~1 – 160 AD)
+    // Early Roman Iron Age (~1–160 CE)
     const yearMatch = (f !== null && t !== null && Math.max(f, 1) <= Math.min(t, 160));
     const colMatch = (
       hasCount(site['Graves_urn_ÄRKZ']) ||
@@ -594,7 +739,7 @@ function siteMatchesEra(site, era) {
   }
 
   if (era === 'JRKZ') {
-    // Late Roman Iron Age (Phases C1, C2, C3, ~160 – 375/400 AD)
+    // Late Roman Iron Age (Phases C1, C2, C3, ~160–375/400 CE)
     const yearMatch = (f !== null && t !== null && Math.max(f, 160) <= Math.min(t, 400));
     const jrkzKeys = [
       'Graves_urn_JRKZ', 'Graves_inhumation_JRKZ', 'Graves_cremation_JRKZ',
@@ -617,7 +762,7 @@ function siteMatchesEra(site, era) {
   }
 
   if (era === 'AEGJ') {
-    // Early Germanic Iron Age / Migration Period (~375/400 – 550 AD)
+    // Early Germanic Iron Age / Migration Period (~375/400–550 CE)
     const yearMatch = (f !== null && t !== null && Math.max(f, 375) <= Math.min(t, 550));
     const colMatch = (
       hasCount(site['Graves_urn_ÆGJ']) ||
@@ -632,7 +777,7 @@ function siteMatchesEra(site, era) {
   }
 
   if (era === 'YGJ') {
-    // Late Germanic & Viking Age (~550 – 1050 AD)
+    // Late Germanic & Viking Age (~550–1050 CE)
     const yearMatch = (f !== null && t !== null && Math.max(f, 550) <= Math.min(t, 1066));
     const ygjKeys = [
       'Graves_urn_late_germanic_iron_age', 'Graves_inhumation_late_germanic_iron_age', 'Graves_cremation_late_germanic_iron_age',
@@ -700,6 +845,7 @@ function updateUI() {
 
   // Update Aggregate Era Counts
   updateEraCounts();
+  updateGraveTypeCounts();
 
   // Update Mini List in Sidebar
   renderMiniList();
@@ -724,17 +870,99 @@ function updateUI() {
   }
 }
 
+function updateGraveTypeCounts() {
+  const specs = [
+    ['countTypeUrn', 'urn_count'],
+    ['countTypeCrem', 'crem_count'],
+    ['countTypeInh', 'inh_count'],
+    ['countTypeChamber', 'chamber_count'],
+    ['countTypeBoat', 'boat_count'],
+    ['countTypeCist', 'cist_count'],
+    ['countTypeUnspecified', 'unspecified_count']
+  ];
+  specs.forEach(([id, field]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let graves = 0;
+    let sites = 0;
+    state.allSites.forEach(site => {
+      const n = site[field] || 0;
+      if (n > 0) {
+        graves += n;
+        sites += 1;
+      }
+    });
+    el.textContent = graves.toLocaleString();
+    el.title = `${graves.toLocaleString()} graves at ${sites} ${sites === 1 ? 'site' : 'sites'}`;
+  });
+}
+
+const PERIOD_ERAS = ['PRKZ', 'ARKZ', 'JRKZ', 'AEGJ', 'YGJ'];
+
+function fitPeriodNames() {
+  const names = [...document.querySelectorAll('.period-timeline .era-name')];
+  if (!names.length) return;
+  names.forEach(name => { name.style.fontSize = '12px'; });
+  let scale = 1;
+  names.forEach(name => {
+    const available = name.clientWidth;
+    const needed = name.scrollWidth;
+    if (available > 0 && needed > available - 1) {
+      scale = Math.min(scale, (available - 1) / needed);
+    }
+  });
+  const size = Math.max(7, Math.floor(12 * scale * 100) / 100);
+  names.forEach(name => { name.style.fontSize = `${size}px`; });
+}
+
+function selectAllPeriods() {
+  state.selectedEras = new Set(PERIOD_ERAS);
+  state.activeEra = 'ALL';
+  document.querySelectorAll('.era-pill').forEach(pill => {
+    pill.classList.toggle('active', state.selectedEras.has(pill.getAttribute('data-era')));
+  });
+}
+
+function syncActiveEra() {
+  if (state.selectedEras.size === PERIOD_ERAS.length) state.activeEra = 'ALL';
+  else if (state.selectedEras.size === 1) state.activeEra = [...state.selectedEras][0];
+  else if (state.selectedEras.size === 0) state.activeEra = 'NONE';
+  else state.activeEra = PERIOD_ERAS.filter(era => state.selectedEras.has(era)).join('+');
+}
+
+function periodSelectionLabel() {
+  if (state.selectedEras.size === PERIOD_ERAS.length) return 'all periods';
+  if (state.selectedEras.size === 0) return 'no periods';
+  return PERIOD_ERAS.filter(era => state.selectedEras.has(era)).join(', ');
+}
+
+function periodSelectionSlug() {
+  return periodSelectionLabel().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
 function updateEraCounts() {
   const prkz = state.allSites.filter(s => siteMatchesEra(s, 'PRKZ')).length;
   const arkz = state.allSites.filter(s => siteMatchesEra(s, 'ARKZ')).length;
-  const jrkz = state.allSites.filter(s => siteMatchesEra(s, 'JRKZ')).length;
   const aegj = state.allSites.filter(s => siteMatchesEra(s, 'AEGJ')).length;
   const ygj = state.allSites.filter(s => siteMatchesEra(s, 'YGJ')).length;
+  const jrkzCount = document.getElementById('countEraJRKZ');
+  let jrkz = state.allSites.filter(s => siteMatchesEra(s, 'JRKZ')).length;
+  if (state.selectedSubPhases.size > 0) {
+    jrkz = state.allSites.filter(site =>
+      [...state.selectedSubPhases].some(phase => siteHasSubPhase(site, phase))
+    ).length;
+    const chosen = SUB_PHASE_KEYS
+      .filter(phase => state.selectedSubPhases.has(phase.key))
+      .map(phase => phase.key)
+      .join(', ');
+    jrkzCount.title = `${chosen}: ${jrkz} sites`;
+  } else {
+    jrkzCount.title = `${jrkz} sites`;
+  }
 
-  document.getElementById('countEraAll').textContent = state.allSites.length;
   document.getElementById('countEraPRKZ').textContent = prkz;
   document.getElementById('countEraARKZ').textContent = arkz;
-  document.getElementById('countEraJRKZ').textContent = jrkz;
+  jrkzCount.textContent = jrkz;
   document.getElementById('countEraAEGJ').textContent = aegj;
   document.getElementById('countEraYGJ').textContent = ygj;
 }
@@ -785,31 +1013,59 @@ function initSubPhaseChips() {
   const container = document.getElementById('phaseChipsContainer');
   if (!container) return;
 
-  let html = '';
-  SUB_PHASE_KEYS.forEach(p => {
-    html += `
-      <label class="phase-chip" data-phase="${p.key}">
-        <input type="checkbox" value="${p.key}">
-        <span>${p.key}</span>
-      </label>
-    `;
-  });
-  container.innerHTML = html;
+  container.innerHTML = SUB_PHASE_KEYS.map(phase => `
+    <button type="button" class="phase-row" data-phase="${phase.key}">
+      <span class="phase-key">${phase.key}</span>
+      <span class="phase-dates">${phase.dates}</span>
+      <i class="fa-solid fa-check phase-check" aria-hidden="true"></i>
+    </button>
+  `).join('');
 
-  container.querySelectorAll('.phase-chip').forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      e.preventDefault();
-      const phase = chip.getAttribute('data-phase');
+  container.querySelectorAll('.phase-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const phase = row.getAttribute('data-phase');
       if (state.selectedSubPhases.has(phase)) {
         state.selectedSubPhases.delete(phase);
-        chip.classList.remove('selected');
+        row.classList.remove('selected');
       } else {
         state.selectedSubPhases.add(phase);
-        chip.classList.add('selected');
+        row.classList.add('selected');
       }
+      syncSubPhaseToggle();
       applyFilters();
     });
   });
+}
+
+function syncSubPhaseToggle() {
+  const toggle = document.getElementById('btnLateRomanPhases');
+  if (!toggle) return;
+  toggle.classList.toggle('has-phases', state.selectedSubPhases.size > 0);
+}
+
+function positionPhaseDropdown() {
+  const pill = document.querySelector('.era-pill[data-era="JRKZ"]');
+  const menu = document.getElementById('phaseDropdown');
+  const timeline = document.querySelector('.period-timeline');
+  if (!pill || !menu || !timeline) return;
+  const pillRect = pill.getBoundingClientRect();
+  const timelineRect = timeline.getBoundingClientRect();
+  const width = Math.min(340, timelineRect.width - 16);
+  let left = pillRect.left - timelineRect.left;
+  if (left + width > timelineRect.width - 8) left = timelineRect.width - width - 8;
+  if (left < 8) left = 8;
+  menu.style.width = `${width}px`;
+  menu.style.left = `${left}px`;
+  menu.style.top = `${pillRect.bottom - timelineRect.top + 6}px`;
+}
+
+function setPhaseDropdownOpen(open) {
+  const menu = document.getElementById('phaseDropdown');
+  const toggle = document.getElementById('btnLateRomanPhases');
+  if (!menu) return;
+  if (open) positionPhaseDropdown();
+  menu.hidden = !open;
+  if (toggle) toggle.classList.toggle('is-open', open);
 }
 
 function populateParishDropdown() {
@@ -868,9 +1124,6 @@ function openSiteDossier(site) {
   }
   if (site.Monuments_yes_or_no === 'Yes') {
     tagsHtml += '<span class="dossier-badge badge-monument"><i class="fa-solid fa-monument"></i> Monument</span>';
-  }
-  if (site.Analytical_potential) {
-    tagsHtml += `<span class="dossier-badge badge-potential"><i class="fa-solid fa-award"></i> ${site.Analytical_potential.split('(')[0].trim()}</span>`;
   }
   tagsContainer.innerHTML = tagsHtml;
 
@@ -1001,6 +1254,10 @@ function openSiteDossier(site) {
             <div class="val">${site.cist_count || 0}</div>
             <div class="lbl">Stone Cist</div>
           </div>
+          <div class="breakdown-box">
+            <div class="val">${site.unspecified_count || 0}</div>
+            <div class="lbl">Not specified</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1035,14 +1292,6 @@ function openSiteDossier(site) {
         <div style="margin-top:8px;">
           <strong>Museum no.:</strong> <span style="font-family:var(--font-mono);">${site.NM_and_BMR || '–'}</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Research potential -->
-    <div class="dossier-card">
-      <div class="dossier-card-title"><i class="fa-solid fa-microscope"></i> Research potential</div>
-      <div class="dossier-card-content">
-        <p>${site.Analytical_potential || 'Not assessed'}</p>
       </div>
     </div>
 
@@ -1115,10 +1364,10 @@ function closeSiteDossier() {
 // ==========================================================================
 // EXPORT EXTRACT CAPABILITIES
 // ==========================================================================
-const DERIVED_FIELDS = new Set(['urn_count', 'crem_count', 'inh_count', 'boat_count', 'chamber_count', 'cist_count', 'Total_graves', 'alt_stednavm', 'Notes', 'Source(s)', 'excavation_state', 'Analytical_potential']);
+const DERIVED_FIELDS = new Set(['urn_count', 'crem_count', 'inh_count', 'boat_count', 'chamber_count', 'cist_count', 'unspecified_count', 'Total_graves', 'alt_stednavm', 'Notes', 'Source(s)', 'excavation_state', 'Analytical_potential']);
 function metaCtx(rows, format, names) {
   const fields = Object.keys(rows[0] || {}).filter(k => !DERIVED_FIELDS.has(k));
-  const bits = [`era ${state.activeEra}`];
+  const bits = [`era ${periodSelectionLabel()}`];
   if (state.selectedParish !== 'ALL') bits.push(`parish ${state.selectedParish}`);
   if (state.searchQuery) bits.push(`search "${state.searchQuery}"`);
   return { rows, fields: names || fields, format, scope: 'current map filters (' + bits.join(', ') + ')' };
@@ -1127,7 +1376,7 @@ function metaCtx(rows, format, names) {
 function exportData(format) {
   const dataToExport = state.filteredSites.length > 0 ? state.filteredSites : state.allSites;
   const timestamp = new Date().toISOString().slice(0, 10);
-  const filename = `bornholm_graves_extract_${state.activeEra.toLowerCase()}_${timestamp}`;
+  const filename = `bornholm_graves_extract_${periodSelectionSlug()}_${timestamp}`;
 
   if (format === 'csv') {
     const csvStr = Papa.unparse(dataToExport);
@@ -1208,7 +1457,7 @@ async function openInWebGIS(platform) {
   // Build GeoJSON FeatureCollection
   const geojson = {
     type: 'FeatureCollection',
-    name: isFiltered ? `bornholm_graves_${state.activeEra.toLowerCase().replace(/[^a-z0-9]/g, '_')}_selection` : 'bornholm_graves_master',
+    name: isFiltered ? `bornholm_graves_${periodSelectionSlug()}_selection` : 'bornholm_graves_master',
     features: dataToExport
       .filter(s => {
         const lat = parseFloat(s.wgs84_latitude);
@@ -1388,9 +1637,9 @@ function exportShapefile(dataToExport, filename) {
         chamber_gr: parseInt(s.chamber_count) || 0,
         boat_grave: parseInt(s.boat_count) || 0,
         cist_grave: parseInt(s.cist_count) || 0,
+        unspec_gr: parseInt(s.unspecified_count) || 0,
         weapons: (s.Weapons_yes_or_no || 'No').slice(0, 3),
         monuments: (s.Monuments_yes_or_no || 'No').slice(0, 3),
-        potential: (s.Analytical_potential || '').slice(0, 80),
         fra_aar: (s.fra_aar || '').slice(0, 10),
         til_aar: (s.til_aar || '').slice(0, 10),
         heritage_u: (s.url || '').slice(0, 120),
@@ -1451,12 +1700,12 @@ function renderTableData() {
   const thead = document.getElementById('tableHead');
   const tbody = document.getElementById('tableBody');
 
-  const headers = ['System no.', 'Name', 'Other name', 'Parish no.', 'Locality no.', 'Graves', 'Weapons', 'Monuments', 'Research potential'];
+  const headers = ['System no.', 'Name', 'Other name', 'Parish no.', 'Locality no.', 'Graves', 'Weapons', 'Monuments'];
   thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
   const tq = state.tableQuery.toLowerCase().trim();
   const rows = tq
-    ? state.filteredSites.filter(s => [s.systemnr, s.stednavn, s.alt_stednavm, getParishName(s.stednr), s.Analytical_potential]
+    ? state.filteredSites.filter(s => [s.systemnr, s.stednavn, s.alt_stednavm, getParishName(s.stednr)]
         .some(v => v && v.toString().toLowerCase().includes(tq)))
     : state.filteredSites;
   if (countBadge) countBadge.textContent = rows.length;
@@ -1473,7 +1722,6 @@ function renderTableData() {
         <td><strong>${s.Total_graves || 0}</strong></td>
         <td>${s.Weapons_yes_or_no || 'No'}</td>
         <td>${s.Monuments_yes_or_no || 'No'}</td>
-        <td>${(s.Analytical_potential || '').slice(0, 40)}</td>
       </tr>
     `;
   });
@@ -1550,6 +1798,13 @@ function initEventListeners() {
     }
   });
 
+  const btnBlackSoil = document.getElementById('btnToggleBlackSoil');
+  if (btnBlackSoil) {
+    btnBlackSoil.addEventListener('click', () => {
+      setBlackSoilVisible(!state.showBlackSoil);
+    });
+  }
+
 
   // Global Search Input
   const searchInput = document.getElementById('globalSearchInput');
@@ -1566,36 +1821,55 @@ function initEventListeners() {
     applyFilters();
   });
 
-  // Aggregate Era Pills
+  // Period blocks. All five start selected. Click one to turn it off or on.
   document.querySelectorAll('.era-pill').forEach(pill => {
     pill.addEventListener('click', () => {
-      document.querySelectorAll('.era-pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      state.activeEra = pill.getAttribute('data-era');
+      const era = pill.getAttribute('data-era');
+      if (state.selectedEras.has(era)) state.selectedEras.delete(era);
+      else state.selectedEras.add(era);
+      pill.classList.toggle('active', state.selectedEras.has(era));
       state.selectedSubPhases.clear();
-      document.querySelectorAll('.phase-chip').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('.phase-row').forEach(row => row.classList.remove('selected'));
+      syncSubPhaseToggle();
+      syncActiveEra();
       applyFilters();
     });
   });
 
-  document.getElementById('btnResetPeriods').addEventListener('click', () => {
-    state.activeEra = 'ALL';
-    state.selectedSubPhases.clear();
-    document.querySelectorAll('.era-pill').forEach(p => p.classList.remove('active'));
-    document.querySelector('.era-pill[data-era="ALL"]').classList.add('active');
-    document.querySelectorAll('.phase-chip').forEach(c => c.classList.remove('selected'));
-    applyFilters();
+  const phaseToggle = document.getElementById('btnLateRomanPhases');
+  if (phaseToggle) {
+    phaseToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const menu = document.getElementById('phaseDropdown');
+      setPhaseDropdownOpen(menu.hidden);
+    });
+  }
+
+  const clearPhases = document.getElementById('btnClearSubPhases');
+  if (clearPhases) {
+    clearPhases.addEventListener('click', () => {
+      state.selectedSubPhases.clear();
+      document.querySelectorAll('.phase-row').forEach(row => row.classList.remove('selected'));
+      syncSubPhaseToggle();
+      applyFilters();
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const menu = document.getElementById('phaseDropdown');
+    const toggle = document.getElementById('btnLateRomanPhases');
+    if (!menu || menu.hidden) return;
+    if (menu.contains(event.target) || (toggle && toggle.contains(event.target))) return;
+    setPhaseDropdownOpen(false);
   });
 
-  // Sub-Phases Accordion Toggle
-  const subPhasesHeader = document.getElementById('btnToggleSubPhases');
-  const subPhasesContainer = document.querySelector('.sub-phases-container');
-  subPhasesHeader.addEventListener('click', () => {
-    subPhasesContainer.classList.toggle('open');
+  window.addEventListener('resize', () => {
+    const menu = document.getElementById('phaseDropdown');
+    if (menu && !menu.hidden) positionPhaseDropdown();
   });
 
   // Grave Types Checkboxes
-  ['Urn', 'Crem', 'Inh', 'Chamber', 'Boat', 'Cist'].forEach(typeKey => {
+  ['Urn', 'Crem', 'Inh', 'Chamber', 'Boat', 'Cist', 'Unspecified'].forEach(typeKey => {
     const el = document.getElementById(`type${typeKey}`);
     if (el) {
       el.addEventListener('change', (e) => {
@@ -1608,8 +1882,8 @@ function initEventListeners() {
   });
 
   document.getElementById('btnResetGraveTypes').addEventListener('click', () => {
-    state.selectedGraveTypes = new Set(['Urn', 'Cremation', 'Inhumation', 'Chamber', 'Boat', 'Cist']);
-    ['typeUrn', 'typeCrem', 'typeInh', 'typeChamber', 'typeBoat', 'typeCist'].forEach(id => {
+    state.selectedGraveTypes = new Set(['Urn', 'Cremation', 'Inhumation', 'Chamber', 'Boat', 'Cist', 'Unspecified']);
+    ['typeUrn', 'typeCrem', 'typeInh', 'typeChamber', 'typeBoat', 'typeCist', 'typeUnspecified'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.checked = true;
     });
@@ -1623,10 +1897,6 @@ function initEventListeners() {
   });
   document.getElementById('filterMonumentsOnly').addEventListener('change', (e) => {
     state.monumentsOnly = e.target.checked;
-    applyFilters();
-  });
-  document.getElementById('filterHighPotentialOnly').addEventListener('change', (e) => {
-    state.highPotentialOnly = e.target.checked;
     applyFilters();
   });
 
